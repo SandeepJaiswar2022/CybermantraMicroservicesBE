@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+
+# ignore RSA keys
+# Ignore key files
+src/main/resources/keys/
+*.pem

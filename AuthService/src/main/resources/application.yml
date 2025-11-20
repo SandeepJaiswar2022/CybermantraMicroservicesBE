@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: AuthService
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cm_auth_db
+    username: postgres
+    password: Post@123
+    driver-class-name: org.postgresql.Driver
+
+  # Optional: Hibernate settings (if using JPA)
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      properties:
+        hibernate.jdbc.lob.non_contextual_creation: true
+      ddl-auto: update
+    sql:
+      init:
+        mode: always
+
+    show-sql: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  private-key-path: classpath:keys/private_key.pem
+  public-key-path: classpath:keys/public_key.pem
+  access-token-expiry-seconds: 900   # 15min
+  refresh-idle-expiry-seconds: 604800 # 7 days
+  refresh-max-expiry-seconds: 2592000 # 30 days
+
+server:
+    port: 8080 # You can specify your desired port here
+
+api:
+   base-url: /api/v1
