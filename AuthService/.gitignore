@@ -32,6 +32,11 @@ build/
 ### VS Code ###
 .vscode/
 
+# Spring Boot config
+application.properties
+application.yml
+src/main/resources/**
+
 
 # ignore RSA keys
 # Ignore key files
