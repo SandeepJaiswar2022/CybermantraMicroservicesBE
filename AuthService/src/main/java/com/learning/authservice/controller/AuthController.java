@@ -3,9 +3,10 @@ package com.learning.authservice.controller;
 import com.learning.authservice.dto.ApiResponse;
 import com.learning.authservice.dto.LoginRequest;
 import com.learning.authservice.dto.RegisterRequest;
+import com.learning.authservice.dto.RegisterResponse;
 import com.learning.authservice.exception.ResourceNotFoundException;
 import com.learning.authservice.repository.UserRepository;
-import com.learning.authservice.service.Auth.AuthService;
+import com.learning.authservice.service.auth.AuthService;
 import com.learning.authservice.service.jwt.JwtService;
 import com.learning.authservice.service.refreshToken.RefreshTokenService;
 import jakarta.servlet.http.Cookie;
@@ -16,7 +17,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -36,30 +36,13 @@ public class AuthController {
 //    @PostMapping(value = "/register", produces = MediaType.APPLICATION_JSON_VALUE)
 @PostMapping(value = "/register")
 public ResponseEntity<ApiResponse<Object>> register(
-            @RequestBody RegisterRequest req,
-            HttpServletResponse response) {
+            @RequestBody RegisterRequest req) {
 
         // 1️⃣ Register user and generate tokens
-        Map<String, Object> authMap = authService.register(req);
-        String refreshToken = authMap.get("refreshToken").toString();
-
-        // 2️⃣ Set HttpOnly cookie for refresh token
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
-                .httpOnly(true)
-                .secure(false) // set true in prod with HTTPS
-                .path("/")
-                .maxAge(refreshTokenExpirySeconds) // 30 days
-                .sameSite("None")
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-
-        // 3️⃣ Return structured JSON body
-
-
+        RegisterResponse response = authService.register(req);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Registered Successfully.", authMap.getOrDefault("authResponse",null)));
+                .body(ApiResponse.success("Registered Successfully.", response));
     }
-
 
     @PostMapping(value="/login")
     public ResponseEntity<ApiResponse<Object>> login(@RequestBody LoginRequest req, HttpServletResponse response) {
@@ -152,9 +135,11 @@ public ResponseEntity<ApiResponse<Object>> register(
         // Extract user info from Redis
         Map<Object, Object> userData = result.userData();
         UUID userId = UUID.fromString((String) userData.get("user_id"));
+        String role = (String) userData.get("role");
+        String email = (String) userData.get("email");
 
         // Generate new access token
-        String accessToken = jwtService.generateAccessToken(userId);
+        String accessToken = jwtService.generateAccessToken(userId,email,role);
 
         // Set new refresh cookie
         ResponseCookie cookie = ResponseCookie.from("refreshToken", result.newRefreshToken())
@@ -176,4 +161,13 @@ public ResponseEntity<ApiResponse<Object>> register(
                 .body(ApiResponse.success("Token rotated successfully (debug mode).", debugResponse));
     }
 
+    @GetMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail(@RequestParam String token) {
+        try {
+            String message = authService.verifyEmail(token);
+            return ResponseEntity.ok(message);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

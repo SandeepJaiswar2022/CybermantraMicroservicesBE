@@ -42,7 +42,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
      * Create a new token family (on login). Store current refresh token hash and expiries.
      * Returns raw refresh token (familyId:rawToken) to set in cookie.
      */
-    public String createTokenFamily(UUID userId) {
+    public String createTokenFamily(UUID userId,String role,String email) {
         String familyId = CryptoUtils.newFamilyId();
         String raw = CryptoUtils.generateRandomToken(64); // 512-bit-ish
         String hash = CryptoUtils.sha256Hex(raw);
@@ -53,6 +53,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         Map<String, String> map = new HashMap<>();
         map.put("user_id", String.valueOf(userId));
+        map.put("role", role);
+        map.put("email", email);
         map.put("current_refresh_token_hash", hash);
         map.put("idle_expiry", String.valueOf(idleExpiry));
         map.put("max_expiry", String.valueOf(maxExpiry));

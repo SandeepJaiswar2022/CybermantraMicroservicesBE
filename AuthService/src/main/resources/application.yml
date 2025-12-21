@@ -3,40 +3,64 @@ spring:
     name: AuthService
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/cm_auth_db
-    username: postgres
-    password: Post@123
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:cm_auth_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:Post@123}
     driver-class-name: org.postgresql.Driver
 
-  # Optional: Hibernate settings (if using JPA)
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      naming:
-        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-      properties:
-        hibernate.jdbc.lob.non_contextual_creation: true
       ddl-auto: update
-    sql:
-      init:
-        mode: always
-
     show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+      hibernate.physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      hibernate.implicit_naming_strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: sandy2662001@gmail.com
+    password: wfwpzhaqgizbfszv
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    publisher-confirm-type: correlated
+    publisher-returns: true
 
 jwt:
   private-key-path: classpath:keys/private_key.pem
   public-key-path: classpath:keys/public_key.pem
-  access-token-expiry-seconds: 900   # 15min
-  refresh-idle-expiry-seconds: 604800 # 7 days
-  refresh-max-expiry-seconds: 2592000 # 30 days
+  access-token-expiry-seconds: 900
+  refresh-idle-expiry-seconds: 604800
+  refresh-max-expiry-seconds: 2592000
 
 server:
-    port: 8080 # You can specify your desired port here
+  port: 8080
 
 api:
-   base-url: /api/v1
+  base-url: /api/v1
+
+app:
+  verification-url: ${VERIFICATION_URL:http://localhost:8080/api/v1/auth/verify-email}
+
+logging:
+  level:
+    com.learning.authservice: DEBUG
+    org.springframework.amqp: DEBUG

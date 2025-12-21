@@ -1,12 +1,13 @@
-package com.learning.authservice.service.Auth;
+package com.learning.authservice.service.auth;
 
-import com.learning.authservice.dto.AuthResponse;
 import com.learning.authservice.dto.LoginRequest;
 import com.learning.authservice.dto.RegisterRequest;
+import com.learning.authservice.dto.RegisterResponse;
 
 import java.util.Map;
 
 public interface AuthService {
-    Map<String, Object> register(RegisterRequest req);
+    RegisterResponse register(RegisterRequest req);
     Map<String, Object> login(LoginRequest req);
+    String verifyEmail(String token);
 }
