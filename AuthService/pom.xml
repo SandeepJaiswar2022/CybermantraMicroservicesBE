@@ -109,12 +109,7 @@
 			<artifactId>jakarta.mail</artifactId>
 			<version>2.0.2</version>
 		</dependency>
-<!--		For Loading .env -->
-		<dependency>
-			<groupId>io.github.cdimascio</groupId>
-			<artifactId>java-dotenv</artifactId>
-			<version>5.2.2</version>
-		</dependency>
+
 		<!-- Spring Boot AMQP (RabbitMQ) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
