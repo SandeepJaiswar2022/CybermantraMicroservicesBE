@@ -55,10 +55,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // Extract user information from token
                 UUID userId = jwtTokenProvider.extractUserId(token);
-                String email = jwtTokenProvider.extractEmail(token);
                 String role = jwtTokenProvider.extractRole(token);
 
-                log.debug("Authenticated user - ID: {}, Email: {}, Role: {}", userId, email, role);
+                log.debug("Authenticated user - ID: {}, Role: {}", userId, role);
 
                 // Create authentication object with role-based authority
                 UsernamePasswordAuthenticationToken authentication =
@@ -83,7 +82,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // Set custom request attributes for easy access in controllers
                 request.setAttribute("userId", userId);
-                request.setAttribute("userEmail", email);
                 request.setAttribute("userRole", role);
 
                 log.debug("Security context set for user: {}", userId);

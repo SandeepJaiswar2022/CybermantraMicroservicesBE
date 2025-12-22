@@ -136,10 +136,10 @@ public ResponseEntity<ApiResponse<Object>> register(
         Map<Object, Object> userData = result.userData();
         UUID userId = UUID.fromString((String) userData.get("user_id"));
         String role = (String) userData.get("role");
-        String email = (String) userData.get("email");
+//        String email = (String) userData.get("email");
 
         // Generate new access token
-        String accessToken = jwtService.generateAccessToken(userId,email,role);
+        String accessToken = jwtService.generateAccessToken(userId,role);
 
         // Set new refresh cookie
         ResponseCookie cookie = ResponseCookie.from("refreshToken", result.newRefreshToken())

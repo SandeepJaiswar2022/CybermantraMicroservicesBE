@@ -205,6 +205,7 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.<Void>builder()
                         .success(false)
                         .message(ex.getMessage())
+                        .data(null)
                         .timestamp(LocalDateTime.now())
                         .build());
     }

@@ -1,5 +1,7 @@
 package com.mobisec.in.courseservice.dto.category;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.deser.std.UUIDDeserializer;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -23,5 +25,6 @@ public class CreateCategoryRequest {
     @Size(max = 500, message = "Icon URL cannot exceed 500 characters")
     private String iconUrl;
 
+//    @JsonDeserialize(using = UUIDDeserializer.class)
     private UUID parentId; // For creating subcategory
 }

@@ -102,19 +102,7 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * Extract Email from token
-     */
-    public String extractEmail(String token) {
-        Claims claims = extractClaims(token);
-        String email = claims.get("email", String.class);
 
-        if (email == null || email.isBlank()) {
-            throw new JwtAuthenticationException("Email not found in token");
-        }
-
-        return email;
-    }
 
     /**
      * Extract Role from token

@@ -59,16 +59,14 @@ public class JwtServiceImpl implements JwtService {
      * Generate Access Token with userId, email, and role
      */
     @Override
-    public String generateAccessToken(UUID userId, String email, String role) {
+    public String generateAccessToken(UUID userId, String role) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId.toString());
-        claims.put("email", email);
         claims.put("role", role);
         claims.put("tokenType", "ACCESS");
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(email)  // Subject is email (standard practice)
+                .setSubject(userId.toString())  // ✅ Use userId as subject
                 .setIssuer(issuer)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(Date.from(Instant.now().plusSeconds(accessTokenExpirySeconds)))

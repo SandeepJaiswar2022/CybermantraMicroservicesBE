@@ -7,5 +7,5 @@ import java.util.UUID;
 import java.util.function.Function;
 
 public interface JwtService {
-    String generateAccessToken(UUID userID,String email,String role);
+    String generateAccessToken(UUID userID,String role);
 }

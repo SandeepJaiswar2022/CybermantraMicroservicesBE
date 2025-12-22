@@ -119,7 +119,7 @@ public class CategoryController {
     @GetMapping("/{categoryId}")
     public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryById(@PathVariable UUID categoryId) {
         log.info("GET /api/v1/categories/{}", categoryId);
-
+    
         CategoryResponse response = categoryService.getCategoryById(categoryId);
 
         return ResponseEntity.ok(ApiResponse.success(response));

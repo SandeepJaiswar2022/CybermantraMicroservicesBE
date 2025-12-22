@@ -15,6 +15,7 @@ import com.learning.authservice.utils.CryptoUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,7 +85,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private Map<String, Object> getAuthResponseAndRefreshToken(User user, String refreshToken) {
-        String accessToken = jwtService.generateAccessToken(user.getId(),user.getEmail(),user.getRole().name());
+        String accessToken = jwtService.generateAccessToken(user.getId(),user.getRole().name());
 
         AuthResponse authResponse = AuthResponse.builder()
                 .accessToken(accessToken)
@@ -101,18 +102,23 @@ public class AuthServiceImpl implements AuthService {
     }
 
     public Map<String, Object> login(LoginRequest req) {
-        // authenticate
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
-        User user = (User) auth.getPrincipal();
-        // Check if already verified
-        if (!user.isEmailVerified()) {
-            throw new AuthException("Please verify email before login!");
-        }
+        try {
+            Authentication auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
+            User user = (User) auth.getPrincipal();
 
-        // create token family
-        String refreshToken = refreshTokenService.createTokenFamily(user.getId(), user.getRole().name(),user.getEmail());
-        return getAuthResponseAndRefreshToken(user, refreshToken);
+            if (!user.isEmailVerified()) {
+                throw new AuthException("Please verify email before login!");
+            }
+
+            String refreshToken = refreshTokenService.createTokenFamily(
+                    user.getId(), user.getRole().name());
+            return getAuthResponseAndRefreshToken(user, refreshToken);
+
+        } catch (BadCredentialsException | UsernameNotFoundException e) {
+            // Generic message - don't reveal if email exists or password is wrong
+            throw new AuthException("Invalid email or password!");
+        }
     }
 
     @Transactional

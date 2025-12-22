@@ -24,18 +24,7 @@ public class RabbitMQConfig {
         return new TopicExchange(EXCHANGE);
     }
 
-//    @Bean
-//    public Queue userProfileQueue() {
-//        return QueueBuilder.durable(QUEUE).build();
-//    }
-//
-//    @Bean
-//    public Binding binding(Queue userProfileQueue, TopicExchange exchange) {
-//        return BindingBuilder
-//                .bind(userProfileQueue)
-//                .to(exchange)
-//                .with(ROUTING_KEY);
-//    }
+
 
     @Bean
     public MessageConverter jsonMessageConverter() {
