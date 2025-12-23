@@ -55,9 +55,7 @@ public class JwtServiceImpl implements JwtService {
         }
     }
 
-    /**
-     * Generate Access Token with userId, email, and role
-     */
+
     @Override
     public String generateAccessToken(UUID userId, String role) {
         Map<String, Object> claims = new HashMap<>();
