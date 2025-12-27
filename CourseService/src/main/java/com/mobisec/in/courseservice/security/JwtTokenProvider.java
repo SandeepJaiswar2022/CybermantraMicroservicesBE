@@ -89,7 +89,7 @@ public class JwtTokenProvider {
      */
     public UUID extractUserId(String token) {
         Claims claims = extractClaims(token);
-        String userIdStr = claims.get("userId", String.class);
+        String userIdStr = claims.getSubject(); // ✅ get from subject
 
         if (userIdStr == null || userIdStr.isBlank()) {
             throw new JwtAuthenticationException("User ID not found in token");
@@ -101,6 +101,7 @@ public class JwtTokenProvider {
             throw new JwtAuthenticationException("Invalid User ID format in token");
         }
     }
+
 
 
 

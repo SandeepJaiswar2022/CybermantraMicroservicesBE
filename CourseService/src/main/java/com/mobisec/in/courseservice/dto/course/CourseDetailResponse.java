@@ -42,6 +42,7 @@ public class CourseDetailResponse {
     private String requirements;
     private Integer totalDurationSeconds;
     private Integer totalLectures;
+    private Integer totalSections;
     private BigDecimal averageRating;
     private Integer totalRatings;
     private Integer totalEnrollments;

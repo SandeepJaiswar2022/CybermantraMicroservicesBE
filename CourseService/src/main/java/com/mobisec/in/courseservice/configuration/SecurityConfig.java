@@ -45,7 +45,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
 
                         // Public endpoints - Course READ operations (for published courses)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/courses/public/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/courses/**").permitAll()
 
                         // Health check and actuator
                         .requestMatchers("/actuator/health", "/health").permitAll()
