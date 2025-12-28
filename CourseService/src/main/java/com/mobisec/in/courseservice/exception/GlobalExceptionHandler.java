@@ -5,6 +5,7 @@ import com.mobisec.in.courseservice.dto.common.ApiResponse;
 import com.mobisec.in.courseservice.dto.common.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -80,6 +81,16 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(InvalidInputException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidInputException(
+            InvalidInputException ex) {
+
+        log.error("Invalid Input: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleUnauthorizedException(
             UnauthorizedException ex, WebRequest request) {
@@ -89,10 +100,21 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .error("UNAUTHORIZED")
                 .message(ex.getMessage())
-                .status(HttpStatus.FORBIDDEN.value())
+                .status(HttpStatus.UNAUTHORIZED.value())
                 .path(request.getDescription(false).replace("uri=", ""))
                 .timestamp(Instant.now().toEpochMilli())
                 .build();
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleUnauthorizedException(
+            ForbiddenException ex) {
+
+        log.error("Forbidden access: {}", ex.getMessage());
+
+
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.error(ex.getMessage()));
     }
@@ -102,18 +124,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
             MethodArgumentNotValidException ex) {
 
-        log.error("Validation error: {}", ex.getMessage());
+        log.error("Validation error", ex);
 
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("Validation failed"));
+        ex.getBindingResult()
+                .getFieldErrors()
+                .forEach(error -> errors.put(
+                        error.getField(),
+                        error.getDefaultMessage()
+                ));
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("Validation failed", errors));
     }
+
 
     //MethodArgumentTypeMismatchException
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -209,6 +235,55 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .build());
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleIllegalArgumentException(
+            IllegalArgumentException ex,
+            HttpServletRequest request) {
+
+        String message = ex.getMessage();
+
+        // Handle pagination specific errors
+
+        log.error("Illegal argument error: {}", ex.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .error("BAD_REQUEST")
+                .message(message)
+                .status(HttpStatus.BAD_REQUEST.value())
+                .path(request.getRequestURI())
+                .timestamp(Instant.now().toEpochMilli())
+                .build();
+
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(message));
+    }
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidDataAccessApiUsage(
+            InvalidDataAccessApiUsageException ex,
+            HttpServletRequest request) {
+
+        String message = ex.getMessage();
+
+        // Friendly pagination-specific message
+        if (message != null && message.contains("Page offset exceeds Integer.MAX_VALUE")) {
+            message = "Requested page is too large. Please use a smaller page index or size.";
+        }
+
+        log.error("Invalid data access usage: {}", ex.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .error("BAD_REQUEST")
+                .message(message)
+                .status(HttpStatus.BAD_REQUEST.value())
+                .path(request.getRequestURI())
+                .timestamp(Instant.now().toEpochMilli())
+                .build();
+
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(message));
+    }
+
 
     /**
      * Handle Spring Security access denied exceptions

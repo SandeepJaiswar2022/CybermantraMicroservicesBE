@@ -105,6 +105,11 @@ public class Course {
     @Builder.Default
     private Integer totalLectures = 0;
 
+    // Calculated field - total number of sections
+    @Column(name = "total_sections")
+    @Builder.Default
+    private Integer totalSections = 0;
+
     // Calculated field - average rating
     @Column(name = "average_rating", precision = 3, scale = 2)
     @Builder.Default

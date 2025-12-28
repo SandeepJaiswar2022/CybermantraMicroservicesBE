@@ -40,6 +40,12 @@ public class CreateCourseRequest {
     @DecimalMax(value = "99999.99", message = "Price cannot exceed 99999.99")
     private BigDecimal price;
 
+    @Size(max = 500, message = "Thumbnail URL cannot exceed 500 characters")
+    private String thumbnailUrl;
+
+    @Size(max = 500, message = "Thumbnail URL cannot exceed 500 characters")
+    private String promoVideoUrl;
+
     @Size(max = 1000, message = "Target audience cannot exceed 1000 characters")
     private String targetAudience;
 

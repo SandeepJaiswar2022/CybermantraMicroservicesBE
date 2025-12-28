@@ -44,14 +44,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Extract token from Authorization header
             String token = extractTokenFromRequest(request);
 
-            if (token == null) {
-                log.debug("No JWT token found in request");
-                sendUnauthorizedResponse(response, "Authorization header is missing");
-                return;
-            }
+//            if (token == null) {
+//                log.debug("No JWT token found in request");
+//                sendUnauthorizedResponse(response, "Authorization header is missing");
+//                return;
+//            }
 
             // Validate token
-            if (jwtTokenProvider.validateToken(token)) {
+            if (token!=null && jwtTokenProvider.validateToken(token)) {
 
                 // Extract user information from token
                 UUID userId = jwtTokenProvider.extractUserId(token);
