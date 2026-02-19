@@ -5,8 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.util.UUID;
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -14,8 +12,6 @@ import java.util.UUID;
 @Builder
 public class CreateSectionRequest {
 
-    @NotNull(message = "Course ID is required")
-    private UUID courseId;
 
     @NotBlank(message = "Section title is required")
     @Size(min = 3, max = 255, message = "Title must be between 3 and 255 characters")
@@ -26,7 +22,4 @@ public class CreateSectionRequest {
 
     @Size(max = 500, message = "Objective cannot exceed 500 characters")
     private String objective;
-
-    @NotNull(message = "Order index is required")
-    private Integer orderIndex;
 }

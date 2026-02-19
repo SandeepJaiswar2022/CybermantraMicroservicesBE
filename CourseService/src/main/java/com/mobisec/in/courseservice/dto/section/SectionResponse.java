@@ -1,6 +1,7 @@
 package com.mobisec.in.courseservice.dto.section;
 
 
+import com.mobisec.in.courseservice.entity.CourseSection;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -24,3 +25,4 @@ public class SectionResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
+

@@ -20,12 +20,13 @@ public interface CourseService {
      * Only accessible by INSTRUCTOR role
      *
      * @param request Course creation details
-     * @param instructorId ID of the instructor creating the course
+     * @param role to verify whether ADMIN or INSTRUCTOR
+     * @param loggedInUserId ID of the instructor creating the course
      * @return Created course details
 //     * @throws ResourceNotFoundException if category or subcategory not found
 //     * @throws InvalidInputException if subcategory doesn't belong to selected category
      */
-    CourseResponse createCourse(CreateCourseRequest request, UUID instructorId);
+    CourseResponse createCourse(CreateCourseRequest request,String role, UUID loggedInUserId);
 
     /**
      * Update an existing course
@@ -102,7 +103,7 @@ public interface CourseService {
 //     * @throws ForbiddenException if user is not the course owner
 //     * @throws InvalidInputException if course is not in DRAFT status
      */
-    CourseResponse submitForReview(UUID courseId, UUID instructorId);
+    CourseResponse submitForReview(UUID courseId, UUID instructorId, String userRole);
 
     /**
      * Review course - approve or reject

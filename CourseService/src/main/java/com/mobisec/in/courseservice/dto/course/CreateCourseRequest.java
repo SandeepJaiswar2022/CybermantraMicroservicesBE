@@ -15,6 +15,9 @@ import java.util.UUID;
 @Builder
 public class CreateCourseRequest {
 
+    // required only for ADMIN
+    private UUID instructorId;
+
     @NotBlank(message = "Course title is required")
     @Size(min = 10, max = 255, message = "Title must be between 10 and 255 characters")
     private String title;

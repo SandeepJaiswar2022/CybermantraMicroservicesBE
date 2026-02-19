@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -33,7 +35,8 @@ public class UpdateLectureRequest {
 
     private String articleContent;
 
-    private String resourceUrls;
+    // RESOURCE type fields
+    private List<String> resourceUrls;
 
     private Boolean isCompletedByInstructor;
 }

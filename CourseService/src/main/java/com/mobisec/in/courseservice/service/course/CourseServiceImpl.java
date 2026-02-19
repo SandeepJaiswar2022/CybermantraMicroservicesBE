@@ -6,10 +6,7 @@ import com.mobisec.in.courseservice.entity.Category;
 import com.mobisec.in.courseservice.entity.Course;
 import com.mobisec.in.courseservice.enums.CourseLevel;
 import com.mobisec.in.courseservice.enums.CourseStatus;
-import com.mobisec.in.courseservice.exception.ForbiddenException;
-import com.mobisec.in.courseservice.exception.InvalidInputException;
-import com.mobisec.in.courseservice.exception.ResourceNotFoundException;
-import com.mobisec.in.courseservice.exception.UnauthorizedException;
+import com.mobisec.in.courseservice.exception.*;
 import com.mobisec.in.courseservice.repository.CategoryRepository;
 import com.mobisec.in.courseservice.repository.CourseRepository;
 import com.mobisec.in.courseservice.repository.specification.CourseSpecifications;
@@ -21,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -34,17 +32,41 @@ public class CourseServiceImpl implements CourseService {
     private final CategoryRepository categoryRepository;
 
     /**
-     * CREATE COURSE - Only INSTRUCTOR
+     * CREATE COURSE - Only INSTRUCTOR and ADMIN
      * Initial status: DRAFT
      */
     @Override
-    public CourseResponse createCourse(CreateCourseRequest request, UUID instructorId) {
-        log.info("Creating course: {} by instructor: {}", request.getTitle(), instructorId);
+    public CourseResponse createCourse(CreateCourseRequest request,String userRole, UUID loggedInUserId) {
+        log.info("Creating course: {} by userId: {} having role: {}", request.getTitle(), loggedInUserId, userRole);
+
+        UUID instructorId;
+
+        if ("ADMIN".equals(userRole)) {
+
+            if (request.getInstructorId() == null) {
+                throw new InvalidInputException("Instructor ID is required when admin creates a course");
+            }
+/* *****IMP***** */
+            //Call User Profile service to verify if Instructor exist or not.
+//            userRepository.findById(instructorId)
+//                    .orElseThrow(() -> new ResourceNotFoundException("Instructor not found"));
+//
+            //Call User Profile service to verify if Instructor exist or not if exist then check for role.
+            instructorId = request.getInstructorId();
+
+        } else if ("INSTRUCTOR".equals(userRole)) {
+
+            instructorId = loggedInUserId;
+
+        } else {
+            throw new ForbiddenException("You are not allowed to create courses");
+        }
 
         // Validate category exists
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
+        
         // Validate subcategory if provided
         Category subcategory = null;
         if (request.getSubcategoryId() != null) {
@@ -56,6 +78,18 @@ public class CourseServiceImpl implements CourseService {
                 throw new InvalidInputException("Subcategory does not belong to selected category");
             }
         }
+
+        boolean alreadyExists = courseRepository
+                .existsByInstructorIdAndTitleIgnoreCaseAndCategory_Id(
+                        instructorId,
+                        request.getTitle(),
+                        request.getCategoryId()
+                );
+
+        if (alreadyExists) {
+            throw new DuplicateResourceException("Course with the same title already exists for this instructor");
+        }
+
 
         // Build course entity
         Course course = Course.builder()
@@ -159,7 +193,6 @@ public class CourseServiceImpl implements CourseService {
                 throw new ForbiddenException("You don't have permission to view this course");
             }
         }
-
         return mapToDetailResponse(course);
     }
 
@@ -247,9 +280,9 @@ public class CourseServiceImpl implements CourseService {
             /* -------------------------------------------------
              * ❌ UNKNOWN ROLE
              * ------------------------------------------------- */
-            else {
-                throw new UnauthorizedException("Invalid user role");
-            }
+//            else {
+//                throw new UnauthorizedException("Invalid user role");
+//            }
 
             /* -------------------------------------------------
              * COMMON FILTERS (Applicable to all)
@@ -278,16 +311,14 @@ public class CourseServiceImpl implements CourseService {
      * SUBMIT COURSE FOR REVIEW - Only course owner
      */
     @Override
-    public CourseResponse submitForReview(UUID courseId, UUID instructorId) {
-        log.info("Submitting course: {} for review by instructor: {}", courseId, instructorId);
+    public CourseResponse submitForReview(UUID courseId, UUID userId, String userRole) {
+        log.info("Submitting course: {} for review by instructor: {}", courseId, userId);
 
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
 
-        // Validate ownership
-        if (!course.getInstructorId().equals(instructorId)) {
-            throw new ForbiddenException("You can only submit your own courses for review");
-        }
+        // Validating ownership and Authorization check
+        validateCourseOwnership(course, userId, userRole);
 
         // Validate course is in DRAFT status
         if (course.getStatus() != CourseStatus.DRAFT) {
@@ -477,40 +508,50 @@ public class CourseServiceImpl implements CourseService {
 
     private CourseDetailResponse mapToDetailResponse(Course course) {
         CourseDetailResponse response = new CourseDetailResponse();
-        // Map all fields including sections
-        // ... implementation
+
         response.setId(course.getId());
         response.setTitle(course.getTitle());
-        response.setDescription(course.getDescription());
         response.setSubtitle(course.getSubtitle());
+        response.setDescription(course.getDescription());
         response.setInstructorId(course.getInstructorId());
-        response.setInstructorName(null);
-        response.setCategoryId(course.getCategory().getId());
-        response.setCategoryName(course.getCategory().getName());
-        response.setSubcategoryId(course.getSubcategory().getId());
-        response.setSubcategoryName(course.getSubcategory().getName());
+
+        if (course.getCategory() != null) {
+            response.setCategoryId(course.getCategory().getId());
+            response.setCategoryName(course.getCategory().getName());
+        }
+
+        if (course.getSubcategory() != null) {
+            response.setSubcategoryId(course.getSubcategory().getId());
+            response.setSubcategoryName(course.getSubcategory().getName());
+        }
+
         response.setLevel(course.getLevel());
         response.setLanguage(course.getLanguage());
-        response.setPrice(course.getPrice());
+        response.setPrice(course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO);
         response.setThumbnailUrl(course.getThumbnailUrl());
         response.setPromoVideoUrl(course.getPromoVideoUrl());
         response.setStatus(course.getStatus());
-        response.setIsPublished(course.getIsPublished());
+        response.setIsPublished(Boolean.TRUE.equals(course.getIsPublished()));
         response.setTargetAudience(course.getTargetAudience());
         response.setRequirements(course.getRequirements());
+
         response.setTotalDurationSeconds(course.getTotalDurationSeconds());
         response.setTotalLectures(course.getTotalLectures());
         response.setTotalSections(course.getTotalSections());
-        response.setAverageRating(course.getAverageRating());
+
+        response.setAverageRating(
+                course.getAverageRating() != null ? course.getAverageRating() : BigDecimal.ZERO
+        );
         response.setTotalRatings(course.getTotalRatings());
         response.setTotalEnrollments(course.getTotalEnrollments());
+
         response.setCreatedAt(course.getCreatedAt());
         response.setUpdatedAt(course.getUpdatedAt());
         response.setPublishedAt(course.getPublishedAt());
-        response.setInstructorBio(null);
 
         return response;
     }
+
 
     private CourseSummaryResponse mapToSummaryResponse(Course course) {
         return CourseSummaryResponse.builder()
