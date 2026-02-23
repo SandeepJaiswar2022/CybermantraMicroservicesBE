@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: enrollment-service
+  profiles:
+    active: dev    # default to INFO everywhere

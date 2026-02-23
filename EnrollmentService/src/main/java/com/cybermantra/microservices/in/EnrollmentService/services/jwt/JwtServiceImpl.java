@@ -1,10 +1,9 @@
-package com.learning.authservice.service.jwt;
+package com.cybermantra.microservices.in.EnrollmentService.services.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -18,35 +17,20 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.time.Instant;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 @Service
 @Slf4j
 public class JwtServiceImpl implements JwtService {
 
-    @Value("${jwt.private-key-path}")
-    private Resource privateKeyResource;
-
     @Value("${jwt.public-key-path}")
     private Resource publicKeyResource;
 
-    @Value("${jwt.access-token-expiry-seconds}")
-    private long accessTokenExpirySeconds;
-
-    @Value("${jwt.issuer:auth-service}")
-    private String issuer;
-
-    private PrivateKey privateKey;
     private PublicKey publicKey;
 
     @PostConstruct
     public void init() {
         try {
-            this.privateKey = readPrivateKey(privateKeyResource);
             this.publicKey = readPublicKey(publicKeyResource);
             log.info("JWT keys loaded successfully");
         } catch (Exception e) {
@@ -56,21 +40,21 @@ public class JwtServiceImpl implements JwtService {
     }
 
 
-    @Override
-    public String generateAccessToken(UUID userId, String role) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role);
-        claims.put("tokenType", "ACCESS");
-
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userId.toString())  // ✅ Use userId as subject
-                .setIssuer(issuer)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(Date.from(Instant.now().plusSeconds(accessTokenExpirySeconds)))
-                .signWith(privateKey, SignatureAlgorithm.RS256)
-                .compact();
-    }
+//    @Override
+//    public String generateAccessToken(UUID userId, String role) {
+//        Map<String, Object> claims = new HashMap<>();
+//        claims.put("role", role);
+//        claims.put("tokenType", "ACCESS");
+//
+//        return Jwts.builder()
+//                .setClaims(claims)
+//                .setSubject(userId.toString())  // ✅ Use userId as subject
+//                .setIssuer(issuer)
+//                .setIssuedAt(new Date(System.currentTimeMillis()))
+//                .setExpiration(Date.from(Instant.now().plusSeconds(accessTokenExpirySeconds)))
+//                .signWith(privateKey, SignatureAlgorithm.RS256)
+//                .compact();
+//    }
 
     /**
      * Validate token signature and expiration
@@ -95,39 +79,38 @@ public class JwtServiceImpl implements JwtService {
         }
     }
 
+
+
     /**
      * Extract User ID from token
      */
-    public UUID extractUserId(String token) {
-        Claims claims = extractAllClaims(token);
-        String userIdStr = claims.get("userId", String.class);
-        return UUID.fromString(userIdStr);
-    }
+//    public Long extractUserId(String token) {
+//        Claims claims = extractAllClaims(token);
+//        String userIdStr = claims.get("userId", String.class);
+//        return UUID.fromString(userIdStr);
+//    }
 
-    /**
-     * Extract Email from token
-     */
-    public String extractEmail(String token) {
-        Claims claims = extractAllClaims(token);
-        return claims.get("email", String.class);
-    }
+//    public Long extractUserId(String token) {
+//        Claims claims = extractAllClaims(token);
+//        String userIdStr = claims.get("userId", String.class);
+//        System.out.println("Extracted userId: {}"+ userIdStr);
+//        return Long.parseLong(userIdStr);
+//    }
 
-    /**
-     * Extract Role from token
-     */
 
     public String extractRole(String token) {
         Claims claims = extractAllClaims(token);
         return claims.get("role", String.class);
     }
-
-    /**
-     * Check if token is expired
-     */
-
+    public String extractSubject(String token)
+    {
+        Claims claims = extractAllClaims(token);
+        return claims.getSubject();
+    }
     public boolean isTokenExpired(String token) {
         try {
             Date expiration = extractAllClaims(token).getExpiration();
+//            System.out.println(expiration);
             return expiration.before(new Date());
         } catch (ExpiredJwtException e) {
             return true;
@@ -174,29 +157,3 @@ public class JwtServiceImpl implements JwtService {
         }
     }
 }
-/*
-
-        ---
-
-        ## Complete Course Service Security Implementation
-
-### **Step 1: Project Structure**
-        ```
-course-service/
-        ├── src/main/java/com/courseservice/
-        │   ├── config/
-        │   │   └── SecurityConfig.java
-│   ├── security/
-        │   │   ├── JwtTokenProvider.java
-│   │   ├── JwtAuthenticationFilter.java
-│   │   └── SecurityUtils.java
-│   ├── exception/
-        │   │   ├── JwtAuthenticationException.java
-│   │   └── GlobalExceptionHandler.java (update)
-│   └── controller/
-        │       └── CategoryController.java (update)
-└── src/main/resources/
-        ├── application.yml
-    └── keys/
-        └── public_key.pem (copy from auth-service)
- */

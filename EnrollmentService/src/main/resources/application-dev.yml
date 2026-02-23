@@ -1,0 +1,40 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/enrollment_db
+    username: postgres
+    password: root
+  jpa:
+    hibernate:
+      ddl-auto: update
+      show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+springdoc:
+  api-docs:
+    path: /enrollment-api-doc
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    try-it-out-enabled: true
+
+server:
+  port: 8084
+
+jwt:
+  public-key-path: classpath:keys/public_key.pem
+
+logging:
+  level:
+    root: INFO
+    com.cybermantra: DEBUG
+    com.cybermantra.microservices.in.EnrollmentService: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE

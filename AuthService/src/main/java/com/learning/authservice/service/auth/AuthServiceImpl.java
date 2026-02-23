@@ -66,6 +66,7 @@ public class AuthServiceImpl implements AuthService {
         String verificationToken = CryptoUtils.generateRandomToken(32);
         user.setEmailVerificationToken(verificationToken);
         user.setEmailVerificationTokenExpiry(Instant.now().plus(24, ChronoUnit.HOURS));
+        System.out.println("verification token");
 
         // Save User to database
         User savedUser =  userRepository.save(user);
