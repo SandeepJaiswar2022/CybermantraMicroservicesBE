@@ -12,10 +12,15 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "lectures", indexes = {
-        @Index(name = "idx_lecture_section_id", columnList = "section_id"),
-        @Index(name = "idx_lecture_order_index", columnList = "order_index"),
-        @Index(name = "idx_lecture_is_preview", columnList = "is_preview")
-})
+        @Index(name = "idx_section_order", columnList = "section_id, order_index"),
+        @Index(name = "idx_lecture_is_preview", columnList = "is_preview"),
+},
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_section_title",
+                        columnNames = {"section_id", "title"}
+                )
+        })
 @Getter
 @Setter
 @NoArgsConstructor

@@ -4,12 +4,16 @@ package com.mobisec.in.courseservice.dto.section;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class UpdateSectionRequest {
+
+
 
     @Size(min = 3, max = 255, message = "Title must be between 3 and 255 characters")
     private String title;
@@ -19,6 +23,4 @@ public class UpdateSectionRequest {
 
     @Size(max = 500, message = "Objective cannot exceed 500 characters")
     private String objective;
-
-    private Integer orderIndex;
 }

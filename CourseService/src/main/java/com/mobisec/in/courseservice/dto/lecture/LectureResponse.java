@@ -5,6 +5,7 @@ import com.mobisec.in.courseservice.enums.LectureContentType;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -24,7 +25,7 @@ public class LectureResponse {
     private Boolean isPreview;
     private LectureContentType contentType;
     private String articleContent;
-    private String resourceUrls;
+    private List<String> resourceUrls;
     private Boolean isCompletedByInstructor;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

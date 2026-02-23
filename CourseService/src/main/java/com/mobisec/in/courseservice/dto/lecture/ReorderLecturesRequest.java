@@ -15,14 +15,14 @@ import java.util.UUID;
 public class ReorderLecturesRequest {
 
     @NotEmpty(message = "Lecture order list cannot be empty")
-    private List<LectureOrder> lectureOrders;
+    private List<LectureOrderItem> lectureOrders;
 
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class LectureOrder {
+    public static class LectureOrderItem {
         @NotNull(message = "Lecture ID is required")
         private UUID lectureId;
 

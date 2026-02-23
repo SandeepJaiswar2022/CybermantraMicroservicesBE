@@ -14,7 +14,9 @@ public class ApiResponse<T> {
     private Boolean success;
     private String message;
     private T data;
-    private LocalDateTime timestamp;
+
+    @Builder.Default
+    private LocalDateTime timestamp= LocalDateTime.now();
 
     public static <T> ApiResponse<T> success(T data) {
         return ApiResponse.<T>builder()

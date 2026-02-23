@@ -18,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.UUID;
 
 @RestController
@@ -29,20 +28,20 @@ public class CourseController {
 
     private final CourseService courseService;
     /**
-     * CREATE COURSE - Only INSTRUCTOR
+     * CREATE COURSE - Only INSTRUCTOR & ADMIN
      */
     @PostMapping
-    @PreAuthorize("hasRole('INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
     public ResponseEntity<ApiResponse<CourseResponse>> createCourse(
             @Valid @RequestBody CreateCourseRequest request,
             HttpServletRequest httpRequest) {
 
-        UUID instructorId = (UUID) httpRequest.getAttribute("userId");
+        UUID userId = (UUID) httpRequest.getAttribute("userId");
         String userRole = (String) httpRequest.getAttribute("userRole");
 
-        log.info("POST /api/v1/courses - Creating course by instructor: {}", instructorId);
+        log.info("POST /api/v1/courses - Creating course by instructor: {}", userId);
 
-        CourseResponse response = courseService.createCourse(request, instructorId);
+        CourseResponse response = courseService.createCourse(request,userRole, userId);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Course created successfully", response));
@@ -127,17 +126,19 @@ public class CourseController {
      * SUBMIT COURSE FOR REVIEW - Only course owner (INSTRUCTOR)
      */
     @PostMapping("/{courseId}/submit-for-review")
-    @PreAuthorize("hasRole('INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
     public ResponseEntity<ApiResponse<CourseResponse>> submitForReview(
             @PathVariable UUID courseId,
             HttpServletRequest httpRequest) {
 
-        UUID instructorId = (UUID) httpRequest.getAttribute("userId");
-
+        UUID userId = (UUID) httpRequest.getAttribute("userId");
+        String userRole = (String) httpRequest.getAttribute("userRole");
         log.info("POST /api/v1/courses/{}/submit-for-review - By instructor: {}",
-                courseId, instructorId);
+                courseId, userId);
 
-        CourseResponse response = courseService.submitForReview(courseId, instructorId);
+
+
+        CourseResponse response = courseService.submitForReview(courseId, userId,userRole);
 
         return ResponseEntity.ok(ApiResponse.success("Course submitted for review", response));
     }
@@ -161,6 +162,7 @@ public class CourseController {
 
         return ResponseEntity.ok(ApiResponse.success("Course reviewed successfully", response));
     }
+
 
     /**
      * PUBLISH COURSE - Only course owner (INSTRUCTOR) after approval
@@ -217,4 +219,5 @@ public class CourseController {
 
         return ResponseEntity.ok(ApiResponse.success("Course deleted successfully", null));
     }
+
 }

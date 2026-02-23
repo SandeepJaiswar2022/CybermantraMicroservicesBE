@@ -16,13 +16,14 @@ import java.util.UUID;
 @Builder
 public class SectionWithLecturesResponse {
 
-    private UUID id;
     private UUID courseId;
+    private UUID sectionId;
     private String title;
     private String description;
     private String objective;
     private Integer orderIndex;
     private Integer totalDurationSeconds;
+    private Integer totalLectures;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
