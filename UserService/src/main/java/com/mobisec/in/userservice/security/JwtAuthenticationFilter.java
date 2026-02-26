@@ -1,6 +1,6 @@
-package com.mobisec.in.courseservice.security;
+package com.mobisec.in.userservice.security;
 
-import com.mobisec.in.courseservice.exception.JwtAuthenticationException;
+import com.mobisec.in.userservice.exception.JwtAuthenticationException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

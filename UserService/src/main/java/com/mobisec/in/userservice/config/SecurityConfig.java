@@ -1,6 +1,6 @@
-package com.mobisec.in.courseservice.configuration;
+package com.mobisec.in.userservice.config;
 
-import com.mobisec.in.courseservice.security.JwtAuthenticationFilter;
+import com.mobisec.in.userservice.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,6 +1,6 @@
-package com.mobisec.in.courseservice.security;
+package com.mobisec.in.userservice.security;
 
-import com.mobisec.in.courseservice.exception.JwtAuthenticationException;
+import com.mobisec.in.userservice.exception.JwtAuthenticationException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;

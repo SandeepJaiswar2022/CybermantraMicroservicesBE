@@ -9,6 +9,8 @@ import java.util.UUID;
 
 public interface UserService {
     void createUserProfile(UserVerifiedEvent event);
+
     Optional<UserProfile> getUserById(UUID id);
+
     List<UserProfile> getAllUsers();
 }
