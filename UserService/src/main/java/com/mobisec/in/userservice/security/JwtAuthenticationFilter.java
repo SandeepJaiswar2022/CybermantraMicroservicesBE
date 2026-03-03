@@ -11,7 +11,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -33,56 +32,63 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        // Skip authentication for public endpoints
         if (shouldNotFilter(request)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            // Extract token from Authorization header
             String token = extractTokenFromRequest(request);
 
-            // if (token == null) {
-            // log.debug("No JWT token found in request");
-            // sendUnauthorizedResponse(response, "Authorization header is missing");
-            // return;
-            // }
+            // Fixed: null token on a protected endpoint is an immediate 401
+            if (token == null) {
+                sendUnauthorizedResponse(response, "Authorization header is missing");
+                return;
+            }
 
-            // Validate token
-            if (token != null && jwtTokenProvider.validateToken(token)) {
+            jwtTokenProvider.validateToken(token);
 
-                // Extract user information from token
+            String tokenType = jwtTokenProvider.extractTokenType(token);
+            String role = jwtTokenProvider.extractRole(token);
+
+            UsernamePasswordAuthenticationToken authentication;
+
+            if ("SERVICE".equals(tokenType)) {
+                // Service token — principal is service name, no userId set
+                String serviceName = jwtTokenProvider.extractSubject(token);
+
+                log.debug("Service token authenticated - service: {}, role: {}", serviceName, role);
+
+                authentication = new UsernamePasswordAuthenticationToken(
+                        serviceName,
+                        null,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));
+
+                // Explicitly mark this request as a service call — no userId attribute set
+                request.setAttribute("callerServiceName", serviceName);
+
+            } else if ("ACCESS".equals(tokenType)) {
+                // User token — principal is UUID
                 UUID userId = jwtTokenProvider.extractUserId(token);
-                String role = jwtTokenProvider.extractRole(token);
 
-                log.debug("Authenticated user - ID: {}, Role: {}", userId, role);
+                log.debug("User token authenticated - userId: {}, role: {}", userId, role);
 
-                // Create authentication object with role-based authority
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                authentication = new UsernamePasswordAuthenticationToken(
                         userId,
                         null,
                         Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));
 
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                Object details = authentication.getDetails();
-
-                if (details instanceof WebAuthenticationDetails webDetails) {
-                    String ip = webDetails.getRemoteAddress();
-                    String sessionId = webDetails.getSessionId();
-
-                    log.info("Request IP: {}, Session ID: {}", ip, sessionId);
-                }
-
-                // Set authentication in security context
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                // Set custom request attributes for easy access in controllers
                 request.setAttribute("userId", userId);
                 request.setAttribute("userRole", role);
 
-                log.debug("Security context set for user: {}", userId);
+            } else {
+                log.error("Unknown tokenType claim: {}", tokenType);
+                sendUnauthorizedResponse(response, "Invalid token type");
+                return;
             }
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (JwtAuthenticationException e) {
             log.error("JWT authentication failed: {}", e.getMessage());
@@ -97,22 +103,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Extract JWT token from Authorization header
-     */
     private String extractTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
-
         return null;
     }
 
-    /**
-     * Send 401 Unauthorized response
-     */
     private void sendUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
@@ -122,17 +120,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 java.time.LocalDateTime.now()));
     }
 
-    /**
-     * Define which endpoints should skip JWT authentication
-     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        String method = request.getMethod();
-
-        // Public endpoints - no authentication required
-        return (path.startsWith("/api/v1/categories") && method.equals("GET")) ||
-                path.equals("/health") ||
+        return path.equals("/health") ||
                 path.startsWith("/actuator/health");
     }
 }
