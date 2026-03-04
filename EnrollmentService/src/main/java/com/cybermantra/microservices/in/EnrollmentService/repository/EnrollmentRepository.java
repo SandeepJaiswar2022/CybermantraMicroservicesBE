@@ -7,20 +7,21 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
-    Optional<Enrollment> findByUserIdAndCourseId(Long userId, Long courseId);
+    Optional<Enrollment> findByUserIdAndCourseId(UUID userId, Long courseId);
 
-    boolean existsByUserIdAndCourseId(Long userId, Long courseId);
+    boolean existsByUserIdAndCourseId(UUID userId, Long courseId);
 
-    List<Enrollment> findAllByUserId(Long userId);
+    List<Enrollment> findAllByUserId(UUID userId);
 
-    List<Enrollment> findAllByUserIdAndIsCompleted(Long userId, Boolean isCompleted);
+    List<Enrollment> findAllByUserIdAndIsCompleted(UUID userId, Boolean isCompleted);
 
-    long countByUserIdAndIsCompleted(Long userId, Boolean isCompleted);
+    long countByUserIdAndIsCompleted(UUID userId, Boolean isCompleted);
 
     @Query("SELECT AVG(e.progressPercentage) FROM Enrollment e WHERE e.userId = :userId")
-    Double findAverageCompletionRateByUserId(Long userId);
+    Double findAverageCompletionRateByUserId(UUID userId);
 }

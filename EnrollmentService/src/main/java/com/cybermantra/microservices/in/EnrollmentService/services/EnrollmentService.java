@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,8 +23,8 @@ public class EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
 
     @Transactional
-    public EnrollmentResponse enroll(Long userId, EnrollmentRequest request) {
-        Long targetUserId = request.getTargetUserId() != null ? request.getTargetUserId() : userId;
+    public EnrollmentResponse enroll(UUID userId, EnrollmentRequest request) {
+        UUID targetUserId = request.getTargetUserId() != null ? request.getTargetUserId() : userId;
 
         if (enrollmentRepository.existsByUserIdAndCourseId(targetUserId, request.getCourseId())) {
             throw new AlreadyEnrolledException(targetUserId, request.getCourseId());
@@ -40,7 +41,7 @@ public class EnrollmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<EnrollmentResponse> getUserEnrollments(Long userId) {
+    public List<EnrollmentResponse> getUserEnrollments(UUID userId) {
         return enrollmentRepository.findAllByUserId(userId)
                 .stream()
                 .map(this::mapToResponse)
@@ -48,14 +49,14 @@ public class EnrollmentService {
     }
 
     @Transactional(readOnly = true)
-    public EnrollmentResponse getEnrollment(Long enrollmentId, Long requestingUserId) {
+    public EnrollmentResponse getEnrollment(Long enrollmentId, UUID requestingUserId) {
         Enrollment enrollment = findEnrollmentById(enrollmentId);
         verifyOwnership(enrollment, requestingUserId);
         return mapToResponse(enrollment);
     }
 
     @Transactional
-    public void unenroll(Long enrollmentId, Long requestingUserId) {
+    public void unenroll(Long enrollmentId, UUID requestingUserId) {
         Enrollment enrollment = findEnrollmentById(enrollmentId);
         verifyOwnership(enrollment, requestingUserId);
         enrollmentRepository.delete(enrollment);
@@ -64,7 +65,7 @@ public class EnrollmentService {
 
     // Called internally (e.g., after payment confirmation via event/feign)
     @Transactional
-    public EnrollmentResponse createEnrollmentAfterPayment(Long userId, Long courseId) {
+    public EnrollmentResponse createEnrollmentAfterPayment(UUID userId, Long courseId) {
         if (enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
             throw new AlreadyEnrolledException(userId, courseId);
         }
@@ -80,7 +81,7 @@ public class EnrollmentService {
                 .orElseThrow(() -> new EnrollmentNotFoundException(enrollmentId));
     }
 
-    private void verifyOwnership(Enrollment enrollment, Long userId) {
+    private void verifyOwnership(Enrollment enrollment, UUID userId) {
         if (!enrollment.getUserId().equals(userId)) {
             throw new AccessDeniedException();
         }

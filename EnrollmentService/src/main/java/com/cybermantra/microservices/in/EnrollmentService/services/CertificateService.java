@@ -21,7 +21,7 @@ public class CertificateService {
     private final EnrollmentService enrollmentService;
 
     @Transactional
-    public CertificateResponse getOrGenerateCertificate(Long enrollmentId, Long userId) {
+    public CertificateResponse getOrGenerateCertificate(Long enrollmentId, UUID userId) {
         Enrollment enrollment = enrollmentService.findEnrollmentById(enrollmentId);
 
         if (!enrollment.getUserId().equals(userId)) {

@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/enrollments")
@@ -36,20 +37,21 @@ public class EnrollmentController {
     @Operation(summary = "Enroll in a course", description = "Enroll the authenticated user in a course. Set targetUserId to gift the course to another user.")
     public ResponseEntity<ApiResponse<EnrollmentResponse>> enroll(
             @Valid @RequestBody EnrollmentRequest request) {
-        Long userId = SecurityUtils.getCurrentUserId();
-        EnrollmentResponse response = enrollmentService.enroll(userId, request);
+        UUID userID = SecurityUtils.getCurrentUserId();
+//        System.out.println("User ID: " + userID);
+        EnrollmentResponse response = enrollmentService.enroll(userID, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Successfully enrolled in course", response));
     }
 
     @Operation(summary = "Get all enrollments for a user")
-    @GetMapping("/user/{userId}")
+    @GetMapping("/user/{userID}")
     public ResponseEntity<ApiResponse<List<EnrollmentResponse>>> getUserEnrollments(
-            @PathVariable Long userId) {
+            @PathVariable UUID userID) {
         // Admins can query any user; regular users can only query themselves
-        Long currentUserId = SecurityUtils.getCurrentUserId();
+        UUID currentUserId = SecurityUtils.getCurrentUserId();
         // Simple guard: allow self-query (role-based admin check can be added via @PreAuthorize)
-        List<EnrollmentResponse> enrollments = enrollmentService.getUserEnrollments(userId);
+        List<EnrollmentResponse> enrollments = enrollmentService.getUserEnrollments(userID);
         return ResponseEntity.ok(ApiResponse.success(enrollments));
     }
 
@@ -57,16 +59,16 @@ public class EnrollmentController {
     @Operation(summary = "Get a specific enrollment by ID")
     public ResponseEntity<ApiResponse<EnrollmentResponse>> getEnrollment(
             @PathVariable Long enrollmentId) {
-        Long userId = SecurityUtils.getCurrentUserId();
+        UUID userID = SecurityUtils.getCurrentUserId();
         return ResponseEntity.ok(ApiResponse.success(
-                enrollmentService.getEnrollment(enrollmentId, userId)));
+                enrollmentService.getEnrollment(enrollmentId, userID)));
     }
 
     @DeleteMapping("/{enrollmentId}")
     @Operation(summary = "Unenroll from a course")
     public ResponseEntity<ApiResponse<Void>> unenroll(@PathVariable Long enrollmentId) {
-        Long userId = SecurityUtils.getCurrentUserId();
-        enrollmentService.unenroll(enrollmentId, userId);
+        UUID userID = SecurityUtils.getCurrentUserId();
+        enrollmentService.unenroll(enrollmentId, userID);
         return ResponseEntity.ok(ApiResponse.success("Successfully unenrolled", null));
     }
 
@@ -77,18 +79,18 @@ public class EnrollmentController {
     public ResponseEntity<ApiResponse<LectureProgressResponse>> updateProgress(
             @PathVariable Long enrollmentId,
             @Valid @RequestBody ProgressUpdateRequest request) {
-        Long userId = SecurityUtils.getCurrentUserId();
+        UUID userID = SecurityUtils.getCurrentUserId();
         return ResponseEntity.ok(ApiResponse.success(
-                progressService.updateProgress(enrollmentId, userId, request)));
+                progressService.updateProgress(enrollmentId, userID, request)));
     }
 
     @GetMapping("/{enrollmentId}/progress")
     @Operation(summary = "Get all lecture progress for an enrollment")
     public ResponseEntity<ApiResponse<List<LectureProgressResponse>>> getProgress(
             @PathVariable Long enrollmentId) {
-        Long userId = SecurityUtils.getCurrentUserId();
+        UUID userID = SecurityUtils.getCurrentUserId();
         return ResponseEntity.ok(ApiResponse.success(
-                progressService.getProgressForEnrollment(enrollmentId, userId)));
+                progressService.getProgressForEnrollment(enrollmentId, userID)));
     }
 
     @PostMapping("/{enrollmentId}/lectures/{lectureId}/complete")
@@ -96,9 +98,9 @@ public class EnrollmentController {
     public ResponseEntity<ApiResponse<LectureProgressResponse>> completeLecture(
             @PathVariable Long enrollmentId,
             @PathVariable Long lectureId) {
-        Long userId = SecurityUtils.getCurrentUserId();
+        UUID userID = SecurityUtils.getCurrentUserId();
         return ResponseEntity.ok(ApiResponse.success("Lecture marked as completed",
-                progressService.markLectureCompleted(enrollmentId, lectureId, userId)));
+                progressService.markLectureCompleted(enrollmentId, lectureId, userID)));
     }
 
     // ─── Certificate ────────────────────────────────────────────────
@@ -107,9 +109,9 @@ public class EnrollmentController {
     @Operation(summary = "Get or generate certificate", description = "Auto-generates a certificate if course is 100% complete. Returns existing one if already generated.")
     public ResponseEntity<ApiResponse<CertificateResponse>> getCertificate(
             @PathVariable Long enrollmentId) {
-        Long userId = SecurityUtils.getCurrentUserId();
+        UUID userID = SecurityUtils.getCurrentUserId();
         return ResponseEntity.ok(ApiResponse.success(
-                certificateService.getOrGenerateCertificate(enrollmentId, userId)));
+                certificateService.getOrGenerateCertificate(enrollmentId, userID)));
     }
 
     // ─── Notes ──────────────────────────────────────────────────────
@@ -119,18 +121,18 @@ public class EnrollmentController {
     public ResponseEntity<ApiResponse<NoteResponse>> addNote(
             @PathVariable Long enrollmentId,
             @Valid @RequestBody NoteRequest request) {
-        Long userId = SecurityUtils.getCurrentUserId();
+        UUID userID = SecurityUtils.getCurrentUserId();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Note added",
-                        noteService.addNote(enrollmentId, userId, request)));
+                        noteService.addNote(enrollmentId, userID, request)));
     }
 
     @GetMapping("/{enrollmentId}/notes")
     @Operation(summary = "Get all notes for an enrollment")
     public ResponseEntity<ApiResponse<List<NoteResponse>>> getNotes(
             @PathVariable Long enrollmentId) {
-        Long userId = SecurityUtils.getCurrentUserId();
+        UUID userID = SecurityUtils.getCurrentUserId();
         return ResponseEntity.ok(ApiResponse.success(
-                noteService.getNotes(enrollmentId, userId)));
+                noteService.getNotes(enrollmentId, userID)));
     }
 }

@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,10 +27,10 @@ public class ProgressService {
 
     // Total lectures per course — in real system, fetch from Course Service via Feign/REST
     // For now: injected or passed in request; here we use a placeholder approach
-    private static final int DEFAULT_TOTAL_LECTURES = 10; // Replace with actual feign call
+    private static final int DEFAULT_TOTAL_LECTURES = 5; // Replace with actual feign call
 
     @Transactional
-    public LectureProgressResponse updateProgress(Long enrollmentId, Long userId,
+    public LectureProgressResponse updateProgress(Long enrollmentId, UUID userId,
                                                   ProgressUpdateRequest request) {
         Enrollment enrollment = enrollmentService.findEnrollmentById(enrollmentId);
         verifyOwnership(enrollment, userId);
@@ -62,7 +63,7 @@ public class ProgressService {
 
     @Transactional
     public LectureProgressResponse markLectureCompleted(Long enrollmentId, Long lectureId,
-                                                        Long userId) {
+                                                        UUID userId) {
         Enrollment enrollment = enrollmentService.findEnrollmentById(enrollmentId);
         verifyOwnership(enrollment, userId);
 
@@ -86,7 +87,7 @@ public class ProgressService {
     }
 
     @Transactional(readOnly = true)
-    public List<LectureProgressResponse> getProgressForEnrollment(Long enrollmentId, Long userId) {
+    public List<LectureProgressResponse> getProgressForEnrollment(Long enrollmentId, UUID userId) {
         Enrollment enrollment = enrollmentService.findEnrollmentById(enrollmentId);
         verifyOwnership(enrollment, userId);
 
@@ -118,7 +119,7 @@ public class ProgressService {
         }
     }
 
-    private void verifyOwnership(Enrollment enrollment, Long userId) {
+    private void verifyOwnership(Enrollment enrollment, UUID userId) {
         if (!enrollment.getUserId().equals(userId)) {
             throw new AccessDeniedException();
         }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,7 +21,7 @@ public class NoteService {
     private final EnrollmentService enrollmentService;
 
     @Transactional
-    public NoteResponse addNote(Long enrollmentId, Long userId, NoteRequest request) {
+    public NoteResponse addNote(Long enrollmentId, UUID userId, NoteRequest request) {
         Enrollment enrollment = enrollmentService.findEnrollmentById(enrollmentId);
         verifyOwnership(enrollment, userId);
 
@@ -35,7 +36,7 @@ public class NoteService {
     }
 
     @Transactional(readOnly = true)
-    public List<NoteResponse> getNotes(Long enrollmentId, Long userId) {
+    public List<NoteResponse> getNotes(Long enrollmentId, UUID userId) {
         Enrollment enrollment = enrollmentService.findEnrollmentById(enrollmentId);
         verifyOwnership(enrollment, userId);
 
@@ -45,7 +46,7 @@ public class NoteService {
                 .collect(Collectors.toList());
     }
 
-    private void verifyOwnership(Enrollment enrollment, Long userId) {
+    private void verifyOwnership(Enrollment enrollment, UUID userId) {
         if (!enrollment.getUserId().equals(userId)) {
             throw new AccessDeniedException();
         }

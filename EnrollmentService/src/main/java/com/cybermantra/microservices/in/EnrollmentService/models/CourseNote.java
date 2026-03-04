@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 @Table(name = "course_notes")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class CourseNote {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

@@ -9,7 +9,7 @@ public class CertificateResponse {
     private Long id;
     private UUID certificateId;
     private Long enrollmentId;
-    private Long userId;
+    private UUID userId;
     private Long courseId;
     private LocalDateTime issuedDate;
     private String pdfUrl;
