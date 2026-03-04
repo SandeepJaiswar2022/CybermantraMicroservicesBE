@@ -1,6 +1,5 @@
 package com.mobisec.in.courseservice.security;
 
-
 import com.mobisec.in.courseservice.exception.JwtAuthenticationException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -101,9 +100,6 @@ public class JwtTokenProvider {
             throw new JwtAuthenticationException("Invalid User ID format in token");
         }
     }
-
-
-
 
     /**
      * Extract Role from token

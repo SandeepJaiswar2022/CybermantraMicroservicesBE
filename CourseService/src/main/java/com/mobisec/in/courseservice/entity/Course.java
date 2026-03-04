@@ -40,6 +40,8 @@ public class Course {
     @Column(name = "instructor_id", nullable = false)
     private UUID instructorId; // Reference to User Service
 
+    private String instructorName;
+
     @Column(name = "title", nullable = false, length = 255)
     private String title;
 

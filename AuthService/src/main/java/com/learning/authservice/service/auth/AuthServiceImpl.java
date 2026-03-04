@@ -1,6 +1,5 @@
 package com.learning.authservice.service.auth;
 
-
 import com.learning.authservice.Enum.Role;
 import com.learning.authservice.dto.*;
 import com.learning.authservice.entity.User;
@@ -20,16 +19,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
-
 /**
- * High-level auth orchestration: register, login, logout, refresh (delegates to RefreshTokenService).
+ * High-level auth orchestration: register, login, logout, refresh (delegates to
+ * RefreshTokenService).
  */
 @Service
 @RequiredArgsConstructor
@@ -61,7 +59,6 @@ public class AuthServiceImpl implements AuthService {
                 .isEmailVerified(false)
                 .build();
 
-
         // Generate verification token
         String verificationToken = CryptoUtils.generateRandomToken(32);
         user.setEmailVerificationToken(verificationToken);
@@ -69,14 +66,13 @@ public class AuthServiceImpl implements AuthService {
         System.out.println("verification token");
 
         // Save User to database
-        User savedUser =  userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
         // Send verification email (async - won't block response)
         emailService.sendVerificationEmail(
                 user.getEmail(),
                 user.getFullName(),
-                verificationToken
-        );
+                verificationToken);
 
         log.info("User registered successfully: {}", savedUser.getEmail());
 
@@ -86,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private Map<String, Object> getAuthResponseAndRefreshToken(User user, String refreshToken) {
-        String accessToken = jwtService.generateAccessToken(user.getId(),user.getRole().name());
+        String accessToken = jwtService.generateAccessToken(user.getId(), user.getRole().name());
 
         AuthResponse authResponse = AuthResponse.builder()
                 .accessToken(accessToken)
@@ -149,8 +145,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getId(),
                 user.getFullName(),
                 user.getEmail(),
-                user.getRole().name()
-        );
+                user.getRole().name());
         eventPublisher.publishUserVerifiedEvent(event);
 
         log.info("Email verified successfully for user: {}", user.getEmail());

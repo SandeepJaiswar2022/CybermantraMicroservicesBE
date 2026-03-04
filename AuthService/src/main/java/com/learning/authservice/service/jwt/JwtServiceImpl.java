@@ -37,6 +37,9 @@ public class JwtServiceImpl implements JwtService {
     @Value("${jwt.access-token-expiry-seconds}")
     private long accessTokenExpirySeconds;
 
+    @Value("${jwt.service-token-expiry-seconds}")
+    private long serviceTokenExpirySeconds;
+
     @Value("${jwt.issuer:auth-service}")
     private String issuer;
 
@@ -55,7 +58,11 @@ public class JwtServiceImpl implements JwtService {
         }
     }
 
-
+    /**
+     * Generate Access Token for authenticated users.
+     * Subject = userId (UUID string)
+     * Claims: role, tokenType = ACCESS
+     */
     @Override
     public String generateAccessToken(UUID userId, String role) {
         Map<String, Object> claims = new HashMap<>();
@@ -64,16 +71,38 @@ public class JwtServiceImpl implements JwtService {
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(userId.toString())  // ✅ Use userId as subject
+                .setSubject(userId.toString()) // subject = userId
                 .setIssuer(issuer)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setIssuedAt(new Date())
                 .setExpiration(Date.from(Instant.now().plusSeconds(accessTokenExpirySeconds)))
                 .signWith(privateKey, SignatureAlgorithm.RS256)
                 .compact();
     }
 
     /**
-     * Validate token signature and expiration
+     * Generate Service Token for internal service-to-service calls.
+     * Subject = serviceName (e.g. "course-service")
+     * Claims: role = SERVICE, tokenType = SERVICE
+     * No userId — this represents a machine identity, not a human.
+     */
+    @Override
+    public String generateServiceToken(String serviceName) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", "SERVICE");
+        claims.put("tokenType", "SERVICE");
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(serviceName) // subject = service name
+                .setIssuer(issuer)
+                .setIssuedAt(new Date())
+                .setExpiration(Date.from(Instant.now().plusSeconds(serviceTokenExpirySeconds)))
+                .signWith(privateKey, SignatureAlgorithm.RS256)
+                .compact();
+    }
+
+    /**
+     * Validate token — checks signature and expiration.
      */
 
     public boolean isTokenValid(String token) {
@@ -96,47 +125,52 @@ public class JwtServiceImpl implements JwtService {
     }
 
     /**
-     * Extract User ID from token
+     * Extract userId from ACCESS token subject.
+     * FIXED: was incorrectly reading from custom claim "userId" — now reads from
+     * subject.
      */
+
     public UUID extractUserId(String token) {
         Claims claims = extractAllClaims(token);
-        String userIdStr = claims.get("userId", String.class);
-        return UUID.fromString(userIdStr);
+        String subject = claims.getSubject();
+
+        if (subject == null || subject.isBlank()) {
+            throw new IllegalArgumentException("Subject not found in token");
+        }
+
+        try {
+            return UUID.fromString(subject);
+        } catch (IllegalArgumentException e) {
+            // Subject is not a UUID — this is likely a service token, not a user token
+            throw new IllegalArgumentException(
+                    "Token subject is not a valid userId. " +
+                            "Ensure you are using a user ACCESS token, not a service token.");
+        }
     }
 
-    /**
-     * Extract Email from token
-     */
     public String extractEmail(String token) {
-        Claims claims = extractAllClaims(token);
-        return claims.get("email", String.class);
+        return extractAllClaims(token).get("email", String.class);
     }
-
-    /**
-     * Extract Role from token
-     */
 
     public String extractRole(String token) {
         Claims claims = extractAllClaims(token);
-        return claims.get("role", String.class);
-    }
+        String role = claims.get("role", String.class);
 
-    /**
-     * Check if token is expired
-     */
+        if (role == null || role.isBlank()) {
+            throw new IllegalArgumentException("Role claim not found in token");
+        }
+
+        return role;
+    }
 
     public boolean isTokenExpired(String token) {
         try {
-            Date expiration = extractAllClaims(token).getExpiration();
-            return expiration.before(new Date());
+            return extractAllClaims(token).getExpiration().before(new Date());
         } catch (ExpiredJwtException e) {
             return true;
         }
     }
 
-    /**
-     * Extract all claims from token
-     */
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(publicKey)
@@ -145,7 +179,6 @@ public class JwtServiceImpl implements JwtService {
                 .getBody();
     }
 
-    // Helper methods to read keys
     private static PrivateKey readPrivateKey(Resource res) throws Exception {
         try (InputStream is = res.getInputStream()) {
             byte[] bytes = is.readAllBytes();
@@ -175,28 +208,30 @@ public class JwtServiceImpl implements JwtService {
     }
 }
 /*
-
-        ---
-
-        ## Complete Course Service Security Implementation
-
-### **Step 1: Project Structure**
-        ```
-course-service/
-        ├── src/main/java/com/courseservice/
-        │   ├── config/
-        │   │   └── SecurityConfig.java
-│   ├── security/
-        │   │   ├── JwtTokenProvider.java
-│   │   ├── JwtAuthenticationFilter.java
-│   │   └── SecurityUtils.java
-│   ├── exception/
-        │   │   ├── JwtAuthenticationException.java
-│   │   └── GlobalExceptionHandler.java (update)
-│   └── controller/
-        │       └── CategoryController.java (update)
-└── src/main/resources/
-        ├── application.yml
-    └── keys/
-        └── public_key.pem (copy from auth-service)
+ * 
+ * ---
+ * 
+ * ## Complete Course Service Security Implementation
+ * 
+ * ### **Step 1: Project Structure**
+ * ```
+ * course-service/
+ * ├── src/main/java/com/courseservice/
+ * │ ├── config/
+ * │ │ └── SecurityConfig.java
+ * │ ├── security/
+ * │ │ ├── JwtTokenProvider.java
+ * │ │ ├── JwtAuthenticationFilter.java
+ * │ │ └── SecurityUtils.java
+ * │ ├── exception/
+ * │ │ ├── JwtAuthenticationException.java
+ * │ │ └── GlobalExceptionHandler.java (update)
+ * │ └── controller/
+ * │ └── CategoryController.java (update)
+ * └── src/main/resources/
+ * ├── application.yml
+ * └── keys/
+ * └── public_key.pem (copy from auth-service)
+ * 
+ * 
  */

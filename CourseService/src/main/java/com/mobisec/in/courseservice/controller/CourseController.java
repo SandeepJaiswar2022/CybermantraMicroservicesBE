@@ -1,6 +1,5 @@
 package com.mobisec.in.courseservice.controller;
 
-
 import com.mobisec.in.courseservice.dto.common.ApiResponse;
 import com.mobisec.in.courseservice.dto.course.*;
 import com.mobisec.in.courseservice.enums.CourseLevel;
@@ -27,6 +26,7 @@ import java.util.UUID;
 public class CourseController {
 
     private final CourseService courseService;
+
     /**
      * CREATE COURSE - Only INSTRUCTOR & ADMIN
      */
@@ -41,7 +41,7 @@ public class CourseController {
 
         log.info("POST /api/v1/courses - Creating course by instructor: {}", userId);
 
-        CourseResponse response = courseService.createCourse(request,userRole, userId);
+        CourseResponse response = courseService.createCourse(request, userRole, userId);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Course created successfully", response));
@@ -111,13 +111,11 @@ public class CourseController {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(
                 sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC,
-                sort[0]
-        ));
+                sort[0]));
 
         Page<CourseSummaryResponse> courses = courseService.listCourses(
                 categoryId, subcategoryId, level, instructorId, status,
-                isPublished, search, pageable, userId, userRole
-        );
+                isPublished, search, pageable, userId, userRole);
 
         return ResponseEntity.ok(ApiResponse.success("Courses retrieved successfully", courses));
     }
@@ -136,9 +134,7 @@ public class CourseController {
         log.info("POST /api/v1/courses/{}/submit-for-review - By instructor: {}",
                 courseId, userId);
 
-
-
-        CourseResponse response = courseService.submitForReview(courseId, userId,userRole);
+        CourseResponse response = courseService.submitForReview(courseId, userId, userRole);
 
         return ResponseEntity.ok(ApiResponse.success("Course submitted for review", response));
     }
@@ -162,7 +158,6 @@ public class CourseController {
 
         return ResponseEntity.ok(ApiResponse.success("Course reviewed successfully", response));
     }
-
 
     /**
      * PUBLISH COURSE - Only course owner (INSTRUCTOR) after approval

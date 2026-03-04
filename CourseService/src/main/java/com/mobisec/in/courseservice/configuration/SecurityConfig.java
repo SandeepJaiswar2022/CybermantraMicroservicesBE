@@ -1,6 +1,5 @@
 package com.mobisec.in.courseservice.configuration;
 
-
 import com.mobisec.in.courseservice.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -27,7 +26,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)  // Enable @PreAuthorize
+@EnableMethodSecurity(prePostEnabled = true) // Enable @PreAuthorize
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -38,8 +37,7 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - Category READ operations
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
@@ -51,8 +49,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/health").permitAll()
 
                         // All other requests require authentication
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -71,11 +68,13 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
             throws Exception {
         return config.getAuthenticationManager();
     }
+
     @Bean
     public AuthenticationProvider authenticationProvider() {
         return new AuthenticationProvider() {

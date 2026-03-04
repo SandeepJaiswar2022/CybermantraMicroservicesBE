@@ -479,6 +479,7 @@ public class CourseServiceImpl implements CourseService {
         return CourseResponse.builder()
                 .id(course.getId())
                 .instructorId(course.getInstructorId())
+                .instructorName(course.getInstructorName())
                 .title(course.getTitle())
                 .subtitle(course.getSubtitle())
                 .description(course.getDescription())
@@ -514,6 +515,7 @@ public class CourseServiceImpl implements CourseService {
         response.setSubtitle(course.getSubtitle());
         response.setDescription(course.getDescription());
         response.setInstructorId(course.getInstructorId());
+        response.setInstructorName(course.getInstructorName());
 
         if (course.getCategory() != null) {
             response.setCategoryId(course.getCategory().getId());
@@ -559,7 +561,7 @@ public class CourseServiceImpl implements CourseService {
                 .title(course.getTitle())
                 .subtitle(course.getSubtitle())
                 .instructorId(course.getInstructorId())
-                .instructorName(null)
+                .instructorName(course.getInstructorName())
                 .thumbnailUrl(course.getThumbnailUrl())
                 .categoryName(course.getCategory().getName())
                 .level(course.getLevel())

@@ -27,8 +27,9 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(request -> request.requestMatchers("/api/v1/auth/**",
-                                "/error", "/swagger-ui/**", "/auth-api-doc")
+                .authorizeHttpRequests(request -> request
+                        .requestMatchers("/api/v1/auth/**", "/internal/auth/service-token",
+                                "/error", "/swagger-ui/**", "/v3/api-docs")
                         .permitAll().anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authProvider);
@@ -40,7 +41,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:5173", "https://nr-creation-ecomm-gpoo.vercel.app",
                 "https://nr-creation.vercel.app")); // Allow frontend origin
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")); // Allowed HTTP methods
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")); // Allowed HTTP
+                                                                                                      // methods
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type")); // Allowed headers
         configuration.setAllowCredentials(true);
 

@@ -1,0 +1,198 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /api/v1
+  # Increase timeout for large file uploads
+  tomcat:
+    connection-timeout: 120000
+    max-swallow-size: -1   # allow unlimited request body swallowing on error
+
+spring:
+  application:
+    name: content-service
+
+  # ─── DATABASE ─────────────────────────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://localhost:5432/content_db
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      # Max pool size: tune based on (CPU cores * 2) + effective_spindle_count
+      # For 4-core machine: 9–10 is a good ceiling
+      maximum-pool-size: 10
+      minimum-idle: 5
+      # Connections idle > 10 min get evicted
+      idle-timeout: 600000
+      # Max lifetime of a connection (< PostgreSQL wait_timeout)
+      max-lifetime: 1800000
+      # How long a thread waits for a connection before throwing
+      connection-timeout: 30000
+      # Pool name for monitoring / JMX
+      pool-name: ContentServiceHikari
+      # Validate connection before borrow (avoids stale connection errors)
+      connection-test-query: SELECT 1
+      # Leak detection: log a warning if connection is held > 60s
+      leak-detection-threshold: 60000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate          # use Flyway/Liquibase in prod; never create/update
+    show-sql: false               # enable only in dev via profile override
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        # Batch inserts/updates for bulk operations
+        jdbc.batch_size: 25
+        order_inserts: true
+        order_updates: true
+        # Second-level cache (optional, add Ehcache/Redis if needed)
+        generate_statistics: false
+
+  # ─── REDIS ────────────────────────────────────────────────────────────────
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 4
+          min-idle: 1
+          max-wait: 2000ms
+
+  # ─── RABBITMQ ─────────────────────────────────────────────────────────────
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual    # manual ack for reliability
+        prefetch: 10
+
+  # ─── MULTIPART ────────────────────────────────────────────────────────────
+  # Allow large video uploads. These must ALSO match reverse-proxy limits (nginx).
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5GB
+      max-request-size: 5GB
+      # Write to temp file instead of memory above this threshold
+      file-size-threshold: 10MB
+      location: /tmp/content-uploads   # temp dir for streaming parts
+
+  # ─── SECURITY (OAuth2 Resource Server - RSA JWT) ──────────────────────────
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Shared RSA public key from Auth Service (PEM or JWKS endpoint)
+          public-key-location: classpath:keys/public.pem
+          # OR use JWKS: jwk-set-uri: http://auth-service/api/v1/auth/.well-known/jwks.json
+
+# ─── CLOUDINARY ─────────────────────────────────────────────────────────────
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+  # Signed URL expiry in seconds (1 hour for video, 10 min for thumbnails)
+  signed-url-expiry-seconds: 3600
+  # Upload presets per content type
+  video-upload-preset: lms_videos
+  resource-upload-preset: lms_resources
+  thumbnail-upload-preset: lms_thumbnails
+
+# ─── MINIO ──────────────────────────────────────────────────────────────────
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket:
+    videos: lms-videos-${spring.profiles.active:dev}
+    resources: lms-resources-${spring.profiles.active:dev}
+    thumbnails: lms-thumbnails-${spring.profiles.active:dev}
+  # Presigned URL TTL
+  presigned-url-expiry-minutes: 60
+
+# ─── CONTENT SERVICE CONFIG ──────────────────────────────────────────────────
+content:
+  storage:
+    # "cloudinary" or "minio"
+    provider: cloudinary
+  allowed-video-types:
+    - video/mp4
+    - video/webm
+    - video/quicktime
+  allowed-resource-types:
+    - application/pdf
+    - application/zip
+    - application/msword
+    - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+  allowed-image-types:
+    - image/jpeg
+    - image/png
+    - image/webp
+  max-video-size-bytes: 5368709120    # 5 GB
+  max-resource-size-bytes: 104857600  # 100 MB
+  max-image-size-bytes: 10485760      # 10 MB
+
+# ─── RABBITMQ TOPOLOGY ───────────────────────────────────────────────────────
+messaging:
+  exchange: lms.content.exchange
+  queues:
+    content-uploaded: content.uploaded
+    content-deleted: content.deleted
+    # Future: video transcoding pipeline
+    transcode-request: content.transcode.request
+    transcode-complete: content.transcode.complete
+  routing-keys:
+    content-uploaded: content.event.uploaded
+    content-deleted: content.event.deleted
+    transcode-request: content.transcode.request
+    transcode-complete: content.transcode.complete
+
+# ─── LOGGING ─────────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.lms.content: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql: TRACE   # log bind params (dev only)
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
+
+# ─── ACTUATOR ────────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+---
+# ─── DEV PROFILE ─────────────────────────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+
+---
+# ─── PROD PROFILE ────────────────────────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    hibernate:
+      ddl-auto: validate

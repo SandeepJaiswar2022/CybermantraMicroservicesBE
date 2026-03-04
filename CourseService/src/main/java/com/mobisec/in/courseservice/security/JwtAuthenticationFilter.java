@@ -1,6 +1,5 @@
 package com.mobisec.in.courseservice.security;
 
-
 import com.mobisec.in.courseservice.exception.JwtAuthenticationException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -44,14 +43,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Extract token from Authorization header
             String token = extractTokenFromRequest(request);
 
-//            if (token == null) {
-//                log.debug("No JWT token found in request");
-//                sendUnauthorizedResponse(response, "Authorization header is missing");
-//                return;
-//            }
+            // if (token == null) {
+            // log.debug("No JWT token found in request");
+            // sendUnauthorizedResponse(response, "Authorization header is missing");
+            // return;
+            // }
 
             // Validate token
-            if (token!=null && jwtTokenProvider.validateToken(token)) {
+            if (token != null && jwtTokenProvider.validateToken(token)) {
 
                 // Extract user information from token
                 UUID userId = jwtTokenProvider.extractUserId(token);
@@ -60,12 +59,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 log.debug("Authenticated user - ID: {}, Role: {}", userId, role);
 
                 // Create authentication object with role-based authority
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userId,
-                                null,
-                                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
-                        );
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        userId,
+                        null,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 Object details = authentication.getDetails();
@@ -122,8 +119,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.getWriter().write(String.format(
                 "{\"success\":false,\"message\":\"%s\",\"timestamp\":\"%s\"}",
                 message,
-                java.time.LocalDateTime.now()
-        ));
+                java.time.LocalDateTime.now()));
     }
 
     /**
