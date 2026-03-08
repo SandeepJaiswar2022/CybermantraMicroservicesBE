@@ -1,0 +1,113 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.9'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.cybermantra.microservices.in'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // Security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // JPA + PostgreSQL
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // JWT (same library you used in Enrollment Service)
+    implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
+    runtimeOnly ("io.jsonwebtoken:jjwt-jackson:0.11.5")
+
+    // Swagger / OpenAPI
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'
+
+    // Stripe Payment Gateway
+    implementation 'com.stripe:stripe-java:26.3.0'
+
+    // Razorpay Payment Gateway
+    implementation 'com.razorpay:razorpay-java:1.4.5'
+
+    // DevTools
+//    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+//
+//```
+//
+//---
+//
+//## Step 3 — Project folder structure to create
+//```
+//src/main/java/com/cybermantra/microservices/in/PaymentService/
+//├── PaymentServiceApplication.java
+//├── config/
+//│   ├── SecurityConfig.java
+//│   ├── SwaggerConfig.java
+//│   └── JwtAuthenticationFilter.java
+//├── controller/
+//│   ├── OrderController.java
+//│   ├── PaymentController.java
+//│   ├── RefundController.java
+//│   ├── CouponController.java
+//│   └── RevenueController.java
+//├── dto/
+//│   ├── request/
+//│   └── response/
+//├── entity/
+//│   ├── Order.java
+//│   ├── Payment.java
+//│   ├── Refund.java
+//│   ├── Coupon.java
+//│   └── InstructorPayout.java
+//├── enums/
+//│   ├── OrderStatus.java
+//│   ├── PaymentStatus.java
+//│   ├── RefundStatus.java
+//│   ├── PaymentGateway.java
+//│   └── DiscountType.java
+//├── exception/
+//│   └── GlobalExceptionHandler.java
+//├── repository/
+//├── service/
+//└── utilities/
+//└── SecurityUtils.java
+//
+//src/main/resources/
+//├── application.yml
+//└── keys/
+//└── public_key.pem   ← copy from Enrollment Service

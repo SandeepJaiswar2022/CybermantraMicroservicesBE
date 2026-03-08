@@ -36,6 +36,9 @@ build/
 application.properties
 application.yml
 src/main/resources/**
+!src/main/resources/application.yml
+!src/main/resources/application-dev.yml
+!src/main/resources/application-prod.yml
 .env
 
 # ignore RSA keys
