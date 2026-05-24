@@ -157,7 +157,7 @@ public class LectureController {
         UUID userId = (UUID) httpRequest.getAttribute("userId");
         String userRole = (String) httpRequest.getAttribute("userRole");
 
-        lectureService.deleteLecture(courseId, sectionId, lectureId, userRole,userId);
+        lectureService.deleteLecture(courseId, sectionId, lectureId, userRole, userId);
 
         return ResponseEntity.noContent().build();
     }
@@ -178,7 +178,7 @@ public class LectureController {
         UUID userId = (UUID) httpRequest.getAttribute("userId");
         String userRole = (String) httpRequest.getAttribute("userRole");
 
-        lectureService.reorderLectures(courseId, sectionId, request, userRole,userId);
+        lectureService.reorderLectures(courseId, sectionId, request, userRole, userId);
 
         return ResponseEntity.ok().build();
     }

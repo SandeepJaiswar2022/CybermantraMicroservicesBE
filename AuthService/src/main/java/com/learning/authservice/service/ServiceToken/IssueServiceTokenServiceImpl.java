@@ -1,5 +1,6 @@
 package com.learning.authservice.service.ServiceToken;
 
+import com.learning.authservice.exception.AuthException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -36,7 +37,7 @@ public class IssueServiceTokenServiceImpl implements IssueServiceTokenService {
             // Generic message — don't reveal whether service name was wrong or secret was
             // wrong
             log.warn("Service token request failed for serviceName: {}", serviceName);
-            throw new com.learning.authservice.exception.AuthException(
+            throw new AuthException(
                     "Invalid service credentials");
         }
 

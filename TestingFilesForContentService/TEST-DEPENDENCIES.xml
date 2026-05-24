@@ -1,0 +1,73 @@
+<!-- ============================================================
+     ADD THESE DEPENDENCIES TO YOUR EXISTING pom.xml
+     inside the <dependencies> block
+     ============================================================ -->
+
+<!-- ── Testcontainers BOM (manages all TC versions together) ── -->
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-bom</artifactId>
+            <version>1.19.7</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+
+<dependencies>
+
+    <!-- ── Core test stack ─────────────────────────────────── -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+        <!-- includes JUnit 5, Mockito, AssertJ, MockMvc -->
+    </dependency>
+
+    <!-- ── Testcontainers ──────────────────────────────────── -->
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>postgresql</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <!-- MinIO uses the generic container — no dedicated TC module -->
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- ── RabbitMQ testing ────────────────────────────────── -->
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>rabbitmq</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.amqp</groupId>
+        <artifactId>spring-rabbit-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- ── HTTP client for integration tests ──────────────── -->
+    <dependency>
+        <groupId>org.apache.httpcomponents.client5</groupId>
+        <artifactId>httpclient5</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- ── Awaitility — async assertions ──────────────────── -->
+    <dependency>
+        <groupId>org.awaitility</groupId>
+        <artifactId>awaitility</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+</dependencies>

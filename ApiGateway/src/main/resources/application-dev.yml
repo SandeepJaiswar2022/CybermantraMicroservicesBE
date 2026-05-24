@@ -1,0 +1,29 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+
+# Service URLs — point to local instances
+AUTH_SERVICE_URL: http://localhost:8081
+COURSE_SERVICE_URL: http://localhost:8082
+USER_PROFILE_SERVICE_URL: http://localhost:8083
+CONTENT_SERVICE_URL: http://localhost:8084
+
+# More verbose logging for development
+logging:
+  level:
+    com.mobisec.in.apigateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+
+# Show full actuator details in dev
+management:
+  endpoint:
+    health:
+      show-details: always

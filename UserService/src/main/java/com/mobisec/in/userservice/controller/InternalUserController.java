@@ -28,7 +28,6 @@ public class InternalUserController {
 
     /**
      * GET /internal/users/{userId}/verify
-     *
      * Called ONLY by internal services — requires ROLE_SERVICE.
      * User tokens (INSTRUCTOR, ADMIN, STUDENT) are rejected by @PreAuthorize.
      *

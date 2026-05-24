@@ -1,7 +1,6 @@
 package com.mobisec.in.courseservice.controller;
 
 
-
 import com.mobisec.in.courseservice.dto.category.CategoryResponse;
 import com.mobisec.in.courseservice.dto.category.CategorySummaryResponse;
 import com.mobisec.in.courseservice.dto.category.CreateCategoryRequest;
@@ -16,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -119,7 +119,7 @@ public class CategoryController {
     @GetMapping("/{categoryId}")
     public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryById(@PathVariable UUID categoryId) {
         log.info("GET /api/v1/categories/{}", categoryId);
-    
+
         CategoryResponse response = categoryService.getCategoryById(categoryId);
 
         return ResponseEntity.ok(ApiResponse.success(response));

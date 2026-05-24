@@ -1,7 +1,9 @@
 package com.mobisec.in.courseservice.service.course;
 
 
+import com.mobisec.in.courseservice.client.UserProfileClient;
 import com.mobisec.in.courseservice.dto.course.*;
+import com.mobisec.in.courseservice.dto.internal.InternalUserVerifyResponse;
 import com.mobisec.in.courseservice.entity.Category;
 import com.mobisec.in.courseservice.entity.Course;
 import com.mobisec.in.courseservice.enums.CourseLevel;
@@ -30,33 +32,45 @@ public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
     private final CategoryRepository categoryRepository;
+    private final UserProfileClient userProfileClient;
 
     /**
      * CREATE COURSE - Only INSTRUCTOR and ADMIN
      * Initial status: DRAFT
      */
     @Override
-    public CourseResponse createCourse(CreateCourseRequest request,String userRole, UUID loggedInUserId) {
-        log.info("Creating course: {} by userId: {} having role: {}", request.getTitle(), loggedInUserId, userRole);
+    public CourseResponse createCourse(CreateCourseRequest request, String userRole, UUID loggedInUserId) {
+        log.info("Creating course: {} by userId: {} having role: {}",
+                request.getTitle(), loggedInUserId, userRole);
 
         UUID instructorId;
+        String instructorName;
 
         if ("ADMIN".equals(userRole)) {
 
             if (request.getInstructorId() == null) {
-                throw new InvalidInputException("Instructor ID is required when admin creates a course");
+                throw new InvalidInputException(
+                        "Instructor ID is required when admin creates a course");
             }
-/* *****IMP***** */
-            //Call User Profile service to verify if Instructor exist or not.
-//            userRepository.findById(instructorId)
-//                    .orElseThrow(() -> new ResourceNotFoundException("Instructor not found"));
-//
-            //Call User Profile service to verify if Instructor exist or not if exist then check for role.
-            instructorId = request.getInstructorId();
+
+            // Confused deputy protection — admin provides instructorId in body,
+            // we verify it against user-profile-service via service token
+            // This is the only place UserProfileClient is called
+            InternalUserVerifyResponse instructor =
+                    userProfileClient.verifyInstructor(request.getInstructorId());
+
+            instructorId = instructor.getUserId();
+            instructorName = instructor.getFullName();
 
         } else if ("INSTRUCTOR".equals(userRole)) {
-
+            // Confused deputy protection — instructorId is ALWAYS taken from the validated JWT,
+            // never from the request body — an instructor cannot create a course for someone else
             instructorId = loggedInUserId;
+
+            // Same verification call — gets the canonical name from user-profile-service
+            InternalUserVerifyResponse instructor =
+                    userProfileClient.verifyInstructor(loggedInUserId);
+            instructorName = instructor.getFullName();
 
         } else {
             throw new ForbiddenException("You are not allowed to create courses");
@@ -66,14 +80,22 @@ public class CourseServiceImpl implements CourseService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        
         // Validate subcategory if provided
         Category subcategory = null;
+
         if (request.getSubcategoryId() != null) {
+            if (request.getSubcategoryId().equals(request.getCategoryId())) {
+                throw new InvalidInputException("Subcategory cannot be the same as category");
+            }
+
             subcategory = categoryRepository.findById(request.getSubcategoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Subcategory not found"));
 
-            // Validate subcategory belongs to selected category
+            // Ensure the category is actually a subcategory
+            if (subcategory.getParent() == null) {
+                throw new InvalidInputException("Provided subcategory is actually a parent category");
+            }
+
             if (!subcategory.getParent().getId().equals(category.getId())) {
                 throw new InvalidInputException("Subcategory does not belong to selected category");
             }
@@ -83,17 +105,16 @@ public class CourseServiceImpl implements CourseService {
                 .existsByInstructorIdAndTitleIgnoreCaseAndCategory_Id(
                         instructorId,
                         request.getTitle(),
-                        request.getCategoryId()
-                );
+                        request.getCategoryId());
 
         if (alreadyExists) {
-            throw new DuplicateResourceException("Course with the same title already exists for this instructor");
+            throw new DuplicateResourceException(
+                    "Course with the same title already exists for this instructor");
         }
 
-
-        // Build course entity
         Course course = Course.builder()
                 .instructorId(instructorId)
+                .instructorName(instructorName)   // denormalized — avoids cross-service call on every read
                 .title(request.getTitle())
                 .subtitle(request.getSubtitle())
                 .description(request.getDescription())
@@ -106,7 +127,7 @@ public class CourseServiceImpl implements CourseService {
                 .promoVideoUrl(request.getPromoVideoUrl())
                 .targetAudience(request.getTargetAudience())
                 .requirements(request.getRequirements())
-                .status(CourseStatus.DRAFT) // Always start as DRAFT
+                .status(CourseStatus.DRAFT)
                 .isPublished(false)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -147,7 +168,8 @@ public class CourseServiceImpl implements CourseService {
         if (request.getPrice() != null) course.setPrice(request.getPrice());
         if (request.getThumbnailUrl() != null) course.setThumbnailUrl(request.getThumbnailUrl());
         if (request.getPromoVideoUrl() != null) course.setPromoVideoUrl(request.getPromoVideoUrl());
-        if (request.getTargetAudience() != null) course.setTargetAudience(request.getTargetAudience());
+        if (request.getTargetAudience() != null)
+            course.setTargetAudience(request.getTargetAudience());
         if (request.getRequirements() != null) course.setRequirements(request.getRequirements());
 
         // Update category if changed
@@ -200,112 +222,112 @@ public class CourseServiceImpl implements CourseService {
      * LIST COURSES with Pagination & Filtering
      */
 
-        @Override
-        public Page<CourseSummaryResponse> listCourses(
-                UUID categoryId,
-                UUID subcategoryId,
-                CourseLevel level,
-                UUID instructorId,
-                CourseStatus status,
-                Boolean isPublished,
-                String searchTerm,
-                Pageable pageable,
-                UUID userId,
-                String userRole) {
+    @Override
+    public Page<CourseSummaryResponse> listCourses(
+            UUID categoryId,
+            UUID subcategoryId,
+            CourseLevel level,
+            UUID instructorId,
+            CourseStatus status,
+            Boolean isPublished,
+            String searchTerm,
+            Pageable pageable,
+            UUID userId,
+            String userRole) {
 
-            log.info("Listing courses | userId={}, role={}, instructorId={}, status={}",
-                    userId, userRole, instructorId, status);
+        log.info("Listing courses | userId={}, role={}, instructorId={}, status={}",
+                userId, userRole, instructorId, status);
 
-            Specification<Course> spec = Specification.where(CourseSpecifications.isNotDeleted());
+        Specification<Course> spec = Specification.where(CourseSpecifications.isNotDeleted());
 
-            /* -------------------------------------------------
-             * 🌍 PUBLIC USER (Not Logged In)
-             * ------------------------------------------------- */
-            if (userId == null) {
-                // Public can ONLY see published courses
-                spec = spec.and(CourseSpecifications.isPublished());
+        /* -------------------------------------------------
+         * 🌍 PUBLIC USER (Not Logged In)
+         * ------------------------------------------------- */
+        if (userId == null) {
+            // Public can ONLY see published courses
+            spec = spec.and(CourseSpecifications.isPublished());
 
-                // Ignore any non-published status sent by client
-                if (status != null && status != CourseStatus.PUBLISHED) {
-                    log.warn("Public user attempted to filter by non-published status: {}", status);
+            // Ignore any non-published status sent by client
+            if (status != null && status != CourseStatus.PUBLISHED) {
+                log.warn("Public user attempted to filter by non-published status: {}", status);
+            }
+        }
+
+        /* -------------------------------------------------
+         * 👨‍🏫 INSTRUCTOR
+         * ------------------------------------------------- */
+        else if ("INSTRUCTOR".equals(userRole)) {
+
+            // If instructorId is provided, it MUST match logged-in user
+            if (instructorId != null) {
+                if (!instructorId.equals(userId)) {
+                    throw new ForbiddenException(
+                            "You are not allowed to view courses of another instructor");
                 }
+                spec = spec.and(CourseSpecifications.byInstructorId(instructorId));
+            } else {
+                // instructorId not sent → fetch own courses
+                spec = spec.and(CourseSpecifications.byInstructorId(userId));
             }
 
-            /* -------------------------------------------------
-             * 👨‍🏫 INSTRUCTOR
-             * ------------------------------------------------- */
-            else if ("INSTRUCTOR".equals(userRole)) {
-
-                // If instructorId is provided, it MUST match logged-in user
-                if (instructorId != null) {
-                    if (!instructorId.equals(userId)) {
-                        throw new ForbiddenException(
-                                "You are not allowed to view courses of another instructor");
-                    }
-                    spec = spec.and(CourseSpecifications.byInstructorId(instructorId));
-                } else {
-                    // instructorId not sent → fetch own courses
-                    spec = spec.and(CourseSpecifications.byInstructorId(userId));
-                }
-
-                // Instructor can see ALL statuses of their own courses
-                if (status != null) {
-                    spec = spec.and(CourseSpecifications.byStatus(status));
-                }
-
-                // Instructor can filter by published flag (optional)
-                if (isPublished != null) {
-                    spec = spec.and(CourseSpecifications.byPublishedStatus(isPublished));
-                }
+            // Instructor can see ALL statuses of their own courses
+            if (status != null) {
+                spec = spec.and(CourseSpecifications.byStatus(status));
             }
 
-            /* -------------------------------------------------
-             * 👑 ADMIN
-             * ------------------------------------------------- */
-            else if ("ADMIN".equals(userRole)) {
+            // Instructor can filter by published flag (optional)
+            if (isPublished != null) {
+                spec = spec.and(CourseSpecifications.byPublishedStatus(isPublished));
+            }
+        }
 
-                if (instructorId != null) {
-                    spec = spec.and(CourseSpecifications.byInstructorId(instructorId));
-                }
+        /* -------------------------------------------------
+         * 👑 ADMIN
+         * ------------------------------------------------- */
+        else if ("ADMIN".equals(userRole)) {
 
-                if (status != null) {
-                    spec = spec.and(CourseSpecifications.byStatus(status));
-                }
-
-                if (isPublished != null) {
-                    spec = spec.and(CourseSpecifications.byPublishedStatus(isPublished));
-                }
+            if (instructorId != null) {
+                spec = spec.and(CourseSpecifications.byInstructorId(instructorId));
             }
 
-            /* -------------------------------------------------
-             * ❌ UNKNOWN ROLE
-             * ------------------------------------------------- */
+            if (status != null) {
+                spec = spec.and(CourseSpecifications.byStatus(status));
+            }
+
+            if (isPublished != null) {
+                spec = spec.and(CourseSpecifications.byPublishedStatus(isPublished));
+            }
+        }
+
+        /* -------------------------------------------------
+         * ❌ UNKNOWN ROLE
+         * ------------------------------------------------- */
 //            else {
 //                throw new UnauthorizedException("Invalid user role");
 //            }
 
-            /* -------------------------------------------------
-             * COMMON FILTERS (Applicable to all)
-             * ------------------------------------------------- */
-            if (categoryId != null) {
-                spec = spec.and(CourseSpecifications.byCategoryId(categoryId));
-            }
-
-            if (subcategoryId != null) {
-                spec = spec.and(CourseSpecifications.bySubcategoryId(subcategoryId));
-            }
-
-            if (level != null) {
-                spec = spec.and(CourseSpecifications.byLevel(level));
-            }
-
-            if (searchTerm != null && !searchTerm.isBlank()) {
-                spec = spec.and(CourseSpecifications.searchByTitleOrDescription(searchTerm));
-            }
-
-            Page<Course> coursePage = courseRepository.findAll(spec, pageable);
-            return coursePage.map(this::mapToSummaryResponse);
+        /* -------------------------------------------------
+         * COMMON FILTERS (Applicable to all)
+         * ------------------------------------------------- */
+        if (categoryId != null) {
+            spec = spec.and(CourseSpecifications.byCategoryId(categoryId));
         }
+
+        if (subcategoryId != null) {
+            spec = spec.and(CourseSpecifications.bySubcategoryId(subcategoryId));
+        }
+
+        if (level != null) {
+            spec = spec.and(CourseSpecifications.byLevel(level));
+        }
+
+        if (searchTerm != null && !searchTerm.isBlank()) {
+            spec = spec.and(CourseSpecifications.searchByTitleOrDescription(searchTerm));
+        }
+
+        Page<Course> coursePage = courseRepository.findAll(spec, pageable);
+        return coursePage.map(this::mapToSummaryResponse);
+    }
 
     /**
      * SUBMIT COURSE FOR REVIEW - Only course owner

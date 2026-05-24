@@ -1,0 +1,43 @@
+spring:
+  profiles:
+    active: test
+
+  # Use test RSA key for JWT decoder
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          public-key-location: classpath:test-public.pem
+
+  # Disable Redis auto-configuration in tests (no Redis needed for unit tests)
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+
+  cloud:
+    gateway:
+      # Disable rate limiter (requires Redis) in tests
+      default-filters: []
+      routes:
+        - id: auth-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: user-profile-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/users/**
+        - id: course-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/courses/**
+        - id: content-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/v1/content/**
+
+logging:
+  level:
+    com.mobisec.in.apigateway: DEBUG
+    org.springframework.security: DEBUG

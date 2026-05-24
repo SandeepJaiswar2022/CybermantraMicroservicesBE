@@ -42,7 +42,7 @@ public class SectionController {
         UUID userId = (UUID) httpRequest.getAttribute("userId");
         String userRole = (String) httpRequest.getAttribute("userRole");
 
-        SectionResponse response = sectionService.createSection(courseId, request, userRole,userId);
+        SectionResponse response = sectionService.createSection(courseId, request, userRole, userId);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -87,7 +87,6 @@ public class SectionController {
     }
 
 
-
     @PutMapping("/{sectionId}")
     @PreAuthorize("hasAnyRole('INSTRUCTOR', 'ADMIN')")
     @Operation(summary = "Update section", description = "Updates section details. Only course owner can update sections.")
@@ -101,7 +100,7 @@ public class SectionController {
         UUID userId = (UUID) httpRequest.getAttribute("userId");
         String userRole = (String) httpRequest.getAttribute("userRole");
 
-        SectionResponse response = sectionService.updateSection(courseId, sectionId, request, userRole,userId);
+        SectionResponse response = sectionService.updateSection(courseId, sectionId, request, userRole, userId);
 
         return ResponseEntity.ok(ApiResponse.<SectionResponse>builder()
                 .success(true)
@@ -122,7 +121,7 @@ public class SectionController {
         UUID userId = (UUID) httpRequest.getAttribute("userId");
         String userRole = (String) httpRequest.getAttribute("userRole");
 
-        sectionService.deleteSection(courseId, sectionId,userRole,userId);
+        sectionService.deleteSection(courseId, sectionId, userRole, userId);
 
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
@@ -142,7 +141,7 @@ public class SectionController {
         UUID userId = (UUID) httpRequest.getAttribute("userId");
         String userRole = (String) httpRequest.getAttribute("userRole");
 
-        List<SectionResponse> sections = sectionService.reorderSections(courseId, request, userRole,userId);
+        List<SectionResponse> sections = sectionService.reorderSections(courseId, request, userRole, userId);
 
         return ResponseEntity.ok(ApiResponse.<List<SectionResponse>>builder()
                 .success(true)

@@ -2,6 +2,8 @@ package com.learning.authservice.dto;
 
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,5 +15,5 @@ public class ErrorResponse {
     private String message;
     private Integer status;
     private String path;
-    private Long timestamp;
+    private LocalDateTime timestamp;
 }

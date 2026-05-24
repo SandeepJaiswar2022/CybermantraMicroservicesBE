@@ -6,7 +6,6 @@ import com.mobisec.in.courseservice.entity.CourseSection;
 import org.springframework.stereotype.Component;
 
 
-
 @Component
 public class SectionMapper {
 
@@ -31,7 +30,6 @@ public class SectionMapper {
                 .updatedAt(section.getUpdatedAt())
                 .build();
     }
-
 
 
 }

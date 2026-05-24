@@ -16,7 +16,7 @@ public class ApiResponse<T> {
     private T data;
 
     @Builder.Default
-    private LocalDateTime timestamp= LocalDateTime.now();
+    private LocalDateTime timestamp = LocalDateTime.now();
 
     public static <T> ApiResponse<T> success(T data) {
         return ApiResponse.<T>builder()
@@ -44,6 +44,7 @@ public class ApiResponse<T> {
                 .timestamp(LocalDateTime.now())
                 .build();
     }
+
     public static <T> ApiResponse<T> error(String message, T data) {
         return ApiResponse.<T>builder()
                 .success(false)

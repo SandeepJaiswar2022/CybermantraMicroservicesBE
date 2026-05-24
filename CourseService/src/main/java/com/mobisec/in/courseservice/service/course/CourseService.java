@@ -19,14 +19,14 @@ public interface CourseService {
      * Create a new course with DRAFT status
      * Only accessible by INSTRUCTOR role
      *
-     * @param request Course creation details
-     * @param role to verify whether ADMIN or INSTRUCTOR
+     * @param request        Course creation details
+     * @param role           to verify whether ADMIN or INSTRUCTOR
      * @param loggedInUserId ID of the instructor creating the course
      * @return Created course details
-//     * @throws ResourceNotFoundException if category or subcategory not found
-//     * @throws InvalidInputException if subcategory doesn't belong to selected category
+     * //     * @throws ResourceNotFoundException if category or subcategory not found
+     * //     * @throws InvalidInputException if subcategory doesn't belong to selected category
      */
-    CourseResponse createCourse(CreateCourseRequest request,String role, UUID loggedInUserId);
+    CourseResponse createCourse(CreateCourseRequest request, String role, UUID loggedInUserId);
 
     /**
      * Update an existing course
@@ -34,13 +34,13 @@ public interface CourseService {
      * Cannot update courses with UNDER_REVIEW status
      *
      * @param courseId ID of the course to update
-     * @param request Updated course details
-     * @param userId ID of the user performing the update
+     * @param request  Updated course details
+     * @param userId   ID of the user performing the update
      * @param userRole Role of the user (INSTRUCTOR or ADMIN)
      * @return Updated course details
-//     * @throws ResourceNotFoundException if course not found
-//     * @throws ForbiddenException if user doesn't have permission
-//     * @throws InvalidInputException if course is under review
+     * //     * @throws ResourceNotFoundException if course not found
+     * //     * @throws ForbiddenException if user doesn't have permission
+     * //     * @throws InvalidInputException if course is under review
      */
     CourseResponse updateCourse(UUID courseId, UpdateCourseRequest request,
                                 UUID userId, String userRole);
@@ -51,12 +51,12 @@ public interface CourseService {
      * - Draft/Under Review courses: accessible only by owner and ADMIN
      *
      * @param courseId ID of the course
-     * @param userId ID of the requesting user (null for public access)
+     * @param userId   ID of the requesting user (null for public access)
      * @param userRole Role of the requesting user
      * @return Detailed course information including sections
-//     * @throws ResourceNotFoundException if course not found or deleted
-//     * @throws UnauthorizedException if authentication required for draft course
-//     * @throws ForbiddenException if user doesn't have permission to view
+     * //     * @throws ResourceNotFoundException if course not found or deleted
+     * //     * @throws UnauthorizedException if authentication required for draft course
+     * //     * @throws ForbiddenException if user doesn't have permission to view
      */
     CourseDetailResponse getCourseById(UUID courseId, UUID userId, String userRole);
 
@@ -67,16 +67,16 @@ public interface CourseService {
      * - Instructors: their own courses + published courses
      * - ADMIN: all courses
      *
-     * @param categoryId Filter by category (optional)
+     * @param categoryId    Filter by category (optional)
      * @param subcategoryId Filter by subcategory (optional)
-     * @param level Filter by course level (optional)
-     * @param instructorId Filter by instructor (optional)
-     * @param status Filter by course status (optional)
-     * @param isPublished Filter by publication status (optional)
-     * @param searchTerm Search in title and description (optional)
-     * @param pageable Pagination parameters
-     * @param userId ID of the requesting user (null for public)
-     * @param userRole Role of the requesting user
+     * @param level         Filter by course level (optional)
+     * @param instructorId  Filter by instructor (optional)
+     * @param status        Filter by course status (optional)
+     * @param isPublished   Filter by publication status (optional)
+     * @param searchTerm    Search in title and description (optional)
+     * @param pageable      Pagination parameters
+     * @param userId        ID of the requesting user (null for public)
+     * @param userRole      Role of the requesting user
      * @return Page of course summaries
      */
     Page<CourseSummaryResponse> listCourses(
@@ -96,12 +96,12 @@ public interface CourseService {
      * Changes status from DRAFT to UNDER_REVIEW
      * Only course owner can submit
      *
-     * @param courseId ID of the course to submit
+     * @param courseId     ID of the course to submit
      * @param instructorId ID of the instructor submitting
      * @return Updated course details
-//     * @throws ResourceNotFoundException if course not found
-//     * @throws ForbiddenException if user is not the course owner
-//     * @throws InvalidInputException if course is not in DRAFT status
+     * //     * @throws ResourceNotFoundException if course not found
+     * //     * @throws ForbiddenException if user is not the course owner
+     * //     * @throws InvalidInputException if course is not in DRAFT status
      */
     CourseResponse submitForReview(UUID courseId, UUID instructorId, String userRole);
 
@@ -111,10 +111,10 @@ public interface CourseService {
      * Changes status to APPROVED or REJECTED
      *
      * @param courseId ID of the course to review
-     * @param request Review action (APPROVE/REJECT) and optional comments
+     * @param request  Review action (APPROVE/REJECT) and optional comments
      * @return Updated course details
-//     * @throws ResourceNotFoundException if course not found
-//     * @throws InvalidInputException if course is not UNDER_REVIEW or invalid action
+     * //     * @throws ResourceNotFoundException if course not found
+     * //     * @throws InvalidInputException if course is not UNDER_REVIEW or invalid action
      */
     CourseResponse reviewCourse(UUID courseId, ReviewCourseRequest request);
 
@@ -124,12 +124,12 @@ public interface CourseService {
      * Only course owner can publish
      * Course must be in APPROVED status
      *
-     * @param courseId ID of the course to publish
+     * @param courseId     ID of the course to publish
      * @param instructorId ID of the instructor publishing
      * @return Published course details
-//     * @throws ResourceNotFoundException if course not found
-//     * @throws ForbiddenException if user is not the course owner
-//     * @throws InvalidInputException if course is not APPROVED
+     * //     * @throws ResourceNotFoundException if course not found
+     * //     * @throws ForbiddenException if user is not the course owner
+     * //     * @throws InvalidInputException if course is not APPROVED
      */
     CourseResponse publishCourse(UUID courseId, UUID instructorId);
 
@@ -139,12 +139,12 @@ public interface CourseService {
      * Only course owner or ADMIN can unpublish
      *
      * @param courseId ID of the course to unpublish
-     * @param userId ID of the user performing action
+     * @param userId   ID of the user performing action
      * @param userRole Role of the user (INSTRUCTOR or ADMIN)
      * @return Unpublished course details
-//     * @throws ResourceNotFoundException if course not found
-//     * @throws ForbiddenException if user doesn't have permission
-//     * @throws InvalidInputException if course is already unpublished
+     * //     * @throws ResourceNotFoundException if course not found
+     * //     * @throws ForbiddenException if user doesn't have permission
+     * //     * @throws InvalidInputException if course is already unpublished
      */
     CourseResponse unpublishCourse(UUID courseId, UUID userId, String userRole);
 
@@ -155,10 +155,10 @@ public interface CourseService {
      * Only course owner or ADMIN can delete
      *
      * @param courseId ID of the course to delete
-     * @param userId ID of the user performing deletion
+     * @param userId   ID of the user performing deletion
      * @param userRole Role of the user (INSTRUCTOR or ADMIN)
-//     * @throws ResourceNotFoundException if course not found
-//     * @throws ForbiddenException if user doesn't have permission
+     *                 //     * @throws ResourceNotFoundException if course not found
+     *                 //     * @throws ForbiddenException if user doesn't have permission
      */
     void deleteCourse(UUID courseId, UUID userId, String userRole);
 
@@ -167,7 +167,7 @@ public interface CourseService {
      * Used for instructor dashboard
      *
      * @param instructorId ID of the instructor
-     * @param pageable Pagination parameters
+     * @param pageable     Pagination parameters
      * @return Page of instructor's courses
      */
     Page<CourseSummaryResponse> getCoursesByInstructor(UUID instructorId, Pageable pageable);
@@ -196,7 +196,7 @@ public interface CourseService {
      *
      * @param courseId ID of the course to restore
      * @return Restored course details
-//     * @throws ResourceNotFoundException if course not found
+     * //     * @throws ResourceNotFoundException if course not found
      */
     CourseResponse restoreCourse(UUID courseId);
 

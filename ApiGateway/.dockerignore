@@ -1,0 +1,29 @@
+# Build artifacts
+target/
+*.class
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Git
+.git/
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test reports
+**/surefire-reports/
+
+# Docker files themselves (avoid context bloat)
+Dockerfile
+.dockerignore
+docker-compose*.yml

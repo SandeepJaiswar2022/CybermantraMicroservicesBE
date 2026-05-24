@@ -1,0 +1,40 @@
+### Maven ###
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### VS Code ###
+.vscode/
+
+### Logs ###
+*.log
+logs/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Security — NEVER commit real keys ###
+# Add an actual public.pem to config/ directory at runtime;
+# the file in src/main/resources/public.pem is a placeholder only.
+config/public.pem
+
+### Environment ###
+.env
+.env.local

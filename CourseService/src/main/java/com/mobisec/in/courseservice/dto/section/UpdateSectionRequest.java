@@ -14,7 +14,6 @@ import java.util.UUID;
 public class UpdateSectionRequest {
 
 
-
     @Size(min = 3, max = 255, message = "Title must be between 3 and 255 characters")
     private String title;
 

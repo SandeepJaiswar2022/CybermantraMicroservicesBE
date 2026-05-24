@@ -136,9 +136,7 @@ public class UserServiceImpl implements UserService {
         UserProfile profile = userProfileRepository.findByUserId(targetUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        boolean isValidRole = expectedRole != null
-                ? expectedRole.equalsIgnoreCase(profile.getRole())
-                : true; // if no role expectation, just verify existence and active status
+        boolean isValidRole = expectedRole == null || expectedRole.equalsIgnoreCase(profile.getRole()); // if no role expectation, just verify existence and active status
 
         return InternalUserVerifyResponse.builder()
                 .userId(profile.getUserId())

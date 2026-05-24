@@ -33,6 +33,7 @@ public class LectureServiceImpl implements LectureService {
     private final SectionRepository sectionRepository;
     private final CourseRepository courseRepository;
     private final LectureMapper lectureMapper;
+
     /**
      * Create a new lecture for a section
      */
@@ -121,6 +122,7 @@ public class LectureServiceImpl implements LectureService {
         // Use SectionMapper to build response with lectures
         return lectureMapper.toResponseWithLectures(section);
     }
+
     /**
      * Get lecture by ID
      */
@@ -433,8 +435,8 @@ public class LectureServiceImpl implements LectureService {
             return true;
         }
 
-        System.out.println("LectureID : "+lecture.getId()+" isEnrolled : "+isEnrolled+" isPreview : "
-                +lecture.getIsPreview()+" course status : "+course.getStatus()+" isCompletedByInstructor : "+lecture.getIsCompletedByInstructor());
+        System.out.println("LectureID : " + lecture.getId() + " isEnrolled : " + isEnrolled + " isPreview : "
+                + lecture.getIsPreview() + " course status : " + course.getStatus() + " isCompletedByInstructor : " + lecture.getIsCompletedByInstructor());
 
         // For non-owners, course must be published
         if (!CourseStatus.PUBLISHED.equals(course.getStatus())) {

@@ -298,7 +298,6 @@ public class CategoryServiceImpl implements CategoryService {
         log.info("Toggling status for category ID: {}", categoryId);
 
 
-
         // Find category
         Category category = categoryRepository.findByIdAndIsDeletedFalse(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));

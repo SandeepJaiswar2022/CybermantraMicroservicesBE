@@ -25,6 +25,6 @@ public class CreateCategoryRequest {
     @Size(max = 500, message = "Icon URL cannot exceed 500 characters")
     private String iconUrl;
 
-//    @JsonDeserialize(using = UUIDDeserializer.class)
+    //    @JsonDeserialize(using = UUIDDeserializer.class)
     private UUID parentId; // For creating subcategory
 }

@@ -1,7 +1,6 @@
 package com.mobisec.in.courseservice.service.category;
 
 
-
 import com.mobisec.in.courseservice.dto.category.CategoryResponse;
 import com.mobisec.in.courseservice.dto.category.CategorySummaryResponse;
 import com.mobisec.in.courseservice.dto.category.CreateCategoryRequest;

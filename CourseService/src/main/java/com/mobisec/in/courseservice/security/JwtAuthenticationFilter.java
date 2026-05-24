@@ -33,56 +33,71 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        // Skip authentication for public endpoints
-        if (shouldNotFilter(request)) {
+        // Fully public — skip filter entirely, no token processing at all
+        if (isFullyPublicEndpoint(request)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            // Extract token from Authorization header
             String token = extractTokenFromRequest(request);
 
-            // if (token == null) {
-            // log.debug("No JWT token found in request");
-            // sendUnauthorizedResponse(response, "Authorization header is missing");
-            // return;
-            // }
+            if (token == null) {
+                if (isOptionalAuthEndpoint(request)) {
+                    // No token on an optional-auth endpoint — treat as public user
+                    // userId and userRole attributes remain null
+                    // Service layer handles null userId as "public/unauthenticated"
+                    log.debug("No token on optional-auth endpoint — proceeding as public");
+                    filterChain.doFilter(request, response);
+                    return;
+                }
 
-            // Validate token
-            if (token != null && jwtTokenProvider.validateToken(token)) {
+                // No token on a protected endpoint — reject immediately
+                sendUnauthorizedResponse(response, "Authorization header is missing");
+                return;
+            }
 
-                // Extract user information from token
+            // Token is present — validate fully regardless of endpoint type
+            // If token is present but invalid, always reject — even on optional-auth endpoints
+            // A user sending a bad token is not the same as a user sending no token
+            jwtTokenProvider.validateToken(token);
+
+            String tokenType = jwtTokenProvider.extractTokenType(token);
+            String role = jwtTokenProvider.extractRole(token);
+
+            UsernamePasswordAuthenticationToken authentication;
+
+            if ("SERVICE".equals(tokenType)) {
+                String serviceName = jwtTokenProvider.extractSubject(token);
+                log.debug("Service token - service: {}", serviceName);
+
+                authentication = new UsernamePasswordAuthenticationToken(
+                        serviceName,
+                        null,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));
+
+                request.setAttribute("callerServiceName", serviceName);
+
+            } else if ("ACCESS".equals(tokenType)) {
                 UUID userId = jwtTokenProvider.extractUserId(token);
-                String role = jwtTokenProvider.extractRole(token);
+                log.debug("User token - userId: {}, role: {}", userId, role);
 
-                log.debug("Authenticated user - ID: {}, Role: {}", userId, role);
-
-                // Create authentication object with role-based authority
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                authentication = new UsernamePasswordAuthenticationToken(
                         userId,
                         null,
                         Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));
 
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                Object details = authentication.getDetails();
-
-                if (details instanceof WebAuthenticationDetails webDetails) {
-                    String ip = webDetails.getRemoteAddress();
-                    String sessionId = webDetails.getSessionId();
-
-                    log.info("Request IP: {}, Session ID: {}", ip, sessionId);
-                }
-
-                // Set authentication in security context
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                // Set custom request attributes for easy access in controllers
                 request.setAttribute("userId", userId);
                 request.setAttribute("userRole", role);
 
-                log.debug("Security context set for user: {}", userId);
+            } else {
+                log.error("Unknown tokenType: {}", tokenType);
+                sendUnauthorizedResponse(response, "Invalid token type");
+                return;
             }
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (JwtAuthenticationException e) {
             log.error("JWT authentication failed: {}", e.getMessage());
@@ -98,22 +113,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extract JWT token from Authorization header
+     * Fully public endpoints — filter skipped entirely.
+     * No token processing whatsoever.
      */
-    private String extractTokenFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
+    private boolean isFullyPublicEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
 
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-        }
-
-        return null;
+        return path.equals("/health") ||
+                path.startsWith("/actuator/health") ||
+                // Categories GET is fully public — no role-based branching needed
+                (path.startsWith("/api/v1/categories") && method.equals("GET"));
     }
 
     /**
-     * Send 401 Unauthorized response
+     * Optional-auth endpoints — token is processed if present, ignored if absent.
+     * Service layer must handle null userId gracefully.
      */
-    private void sendUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
+    private boolean isOptionalAuthEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+
+        return path.equals("/api/v1/courses") && method.equals("GET");
+    }
+
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+
+    private void sendUnauthorizedResponse(HttpServletResponse response, String message)
+            throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write(String.format(
@@ -122,17 +155,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 java.time.LocalDateTime.now()));
     }
 
-    /**
-     * Define which endpoints should skip JWT authentication
-     */
+    // shouldNotFilter is now intentionally always false
+    // We handle all skip logic internally with isFullyPublicEndpoint
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        String method = request.getMethod();
-
-        // Public endpoints - no authentication required
-        return (path.startsWith("/api/v1/categories") && method.equals("GET")) ||
-                path.equals("/health") ||
-                path.startsWith("/actuator/health");
+        return false;
     }
 }
+

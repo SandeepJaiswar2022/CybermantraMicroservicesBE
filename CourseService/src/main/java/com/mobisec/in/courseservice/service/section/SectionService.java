@@ -1,8 +1,6 @@
 package com.mobisec.in.courseservice.service.section;
 
 
-
-
 import com.mobisec.in.courseservice.dto.section.*;
 
 import java.util.List;
@@ -13,7 +11,7 @@ public interface SectionService {
     /**
      * Create a new section for a course
      */
-    SectionResponse createSection(UUID courseId, CreateSectionRequest request,String userRole, UUID userId);
+    SectionResponse createSection(UUID courseId, CreateSectionRequest request, String userRole, UUID userId);
 
     /**
      * Get all sections for a course
@@ -24,7 +22,6 @@ public interface SectionService {
      * Get section by ID with basic details
      */
     SectionResponse getSectionById(UUID courseId, UUID sectionId);
-
 
 
     /**

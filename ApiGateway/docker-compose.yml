@@ -1,0 +1,124 @@
+version: '3.9'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Docker Compose — Udemy-like Learning Platform
+#
+# This file defines the full local stack. The API Gateway is the only service
+# exposed to the host; all other services are on the internal network only.
+#
+# Usage:
+#   docker compose up -d
+#   docker compose logs -f api-gateway
+#   docker compose down -v
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Infrastructure ─────────────────────────────────────────────────────────
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: platform-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redissecret}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redissecret}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - platform-net
+
+  # ── API Gateway ─────────────────────────────────────────────────────────────
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"        # Public-facing gateway port
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redissecret}
+      AUTH_SERVICE_URL: http://auth-service:8081
+      USER_PROFILE_SERVICE_URL: http://user-profile-service:8082
+      COURSE_SERVICE_URL: http://course-service:8083
+      CONTENT_SERVICE_URL: http://content-service:8084
+    volumes:
+      # Mount your real public.pem here at runtime
+      - ./config/public.pem:/app/config/public.pem:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - platform-net
+
+  # ── Auth Service ────────────────────────────────────────────────────────────
+  # Replace 'image' with your actual built image or build context.
+
+  auth-service:
+    image: mobisec/auth-service:latest   # Replace with your image
+    container_name: auth-service
+    # NOT exposed to host — only accessible via gateway
+    environment:
+      SERVER_PORT: 8081
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - platform-net
+
+  # ── User Profile Service ────────────────────────────────────────────────────
+
+  user-profile-service:
+    image: mobisec/user-profile-service:latest   # Replace with your image
+    container_name: user-profile-service
+    environment:
+      SERVER_PORT: 8082
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - platform-net
+
+  # ── Course Service ──────────────────────────────────────────────────────────
+
+  course-service:
+    image: mobisec/course-service:latest   # Replace with your image
+    container_name: course-service
+    environment:
+      SERVER_PORT: 8083
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - platform-net
+
+  # ── Content Service ─────────────────────────────────────────────────────────
+
+  content-service:
+    image: mobisec/content-service:latest   # Replace with your image
+    container_name: content-service
+    environment:
+      SERVER_PORT: 8084
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - platform-net
+
+# ── Volumes ──────────────────────────────────────────────────────────────────
+
+volumes:
+  redis-data:
+    driver: local
+
+# ── Networks ─────────────────────────────────────────────────────────────────
+
+networks:
+  platform-net:
+    driver: bridge

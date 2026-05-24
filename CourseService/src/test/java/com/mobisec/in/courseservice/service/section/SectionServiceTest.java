@@ -1,7 +1,6 @@
 package com.mobisec.in.courseservice.service.section;
 
 
-
 import com.mobisec.in.courseservice.dto.section.*;
 import com.mobisec.in.courseservice.entity.Course;
 import com.mobisec.in.courseservice.entity.CourseSection;
@@ -30,7 +29,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 
-
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Section Service Tests")
 class SectionServiceTest {
@@ -43,7 +41,6 @@ class SectionServiceTest {
 
     @Mock
     private SectionMapper sectionMapper;
-
 
 
     @InjectMocks
@@ -265,7 +262,6 @@ class SectionServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Section not found in the specified course");
     }
-
 
 
     // ==================== UPDATE SECTION TESTS ====================

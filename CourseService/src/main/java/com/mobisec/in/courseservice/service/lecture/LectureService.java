@@ -23,7 +23,7 @@ public interface LectureService {
     /**
      * Get all lectures for a section
      */
-   SectionWithLecturesResponse getAllLecturesBySection(
+    SectionWithLecturesResponse getAllLecturesBySection(
             UUID courseId,
             UUID sectionId,
             UUID userId,

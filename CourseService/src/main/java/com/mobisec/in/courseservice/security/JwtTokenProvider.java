@@ -39,19 +39,13 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * Validate JWT token signature and expiration
-     */
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()
                     .setSigningKey(publicKey)
                     .build()
                     .parseClaimsJws(token);
-
-            log.debug("Token validated successfully");
             return true;
-
         } catch (ExpiredJwtException e) {
             log.warn("JWT token expired: {}", e.getMessage());
             throw new JwtAuthenticationException("Token has expired");
@@ -67,9 +61,6 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * Extract all claims from token
-     */
     public Claims extractClaims(String token) {
         try {
             return Jwts.parserBuilder()
@@ -84,60 +75,66 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Extract User ID from token
+     * Returns "ACCESS" or "SERVICE".
+     * Filter branches on this before attempting UUID extraction.
+     */
+    public String extractTokenType(String token) {
+        Claims claims = extractClaims(token);
+        String tokenType = claims.get("tokenType", String.class);
+
+        if (tokenType == null || tokenType.isBlank()) {
+            throw new JwtAuthenticationException("tokenType claim missing from token");
+        }
+
+        return tokenType;
+    }
+
+    /**
+     * Only call for ACCESS tokens — subject is a UUID.
+     * Will throw clearly if called on a SERVICE token.
      */
     public UUID extractUserId(String token) {
         Claims claims = extractClaims(token);
-        String userIdStr = claims.getSubject(); // ✅ get from subject
+        String subject = claims.getSubject();
 
-        if (userIdStr == null || userIdStr.isBlank()) {
-            throw new JwtAuthenticationException("User ID not found in token");
+        if (subject == null || subject.isBlank()) {
+            throw new JwtAuthenticationException("Subject missing from token");
         }
 
         try {
-            return UUID.fromString(userIdStr);
+            return UUID.fromString(subject);
         } catch (IllegalArgumentException e) {
-            throw new JwtAuthenticationException("Invalid User ID format in token");
+            throw new JwtAuthenticationException(
+                    "Token subject is not a valid UUID. Do not call extractUserId on a SERVICE token.");
         }
     }
 
     /**
-     * Extract Role from token
+     * Safe for both ACCESS and SERVICE tokens.
      */
+    public String extractSubject(String token) {
+        return extractClaims(token).getSubject();
+    }
+
     public String extractRole(String token) {
         Claims claims = extractClaims(token);
         String role = claims.get("role", String.class);
 
         if (role == null || role.isBlank()) {
-            throw new JwtAuthenticationException("Role not found in token");
+            throw new JwtAuthenticationException("Role claim missing from token");
         }
 
         return role;
     }
 
-    /**
-     * Check if token is expired
-     */
     public boolean isTokenExpired(String token) {
         try {
-            Claims claims = extractClaims(token);
-            return claims.getExpiration().before(new Date());
+            return extractClaims(token).getExpiration().before(new Date());
         } catch (ExpiredJwtException e) {
             return true;
         }
     }
 
-    /**
-     * Extract subject (email) from token
-     */
-    public String extractSubject(String token) {
-        Claims claims = extractClaims(token);
-        return claims.getSubject();
-    }
-
-    /**
-     * Read public key from file
-     */
     private static PublicKey readPublicKey(Resource res) throws Exception {
         try (InputStream is = res.getInputStream()) {
             byte[] bytes = is.readAllBytes();

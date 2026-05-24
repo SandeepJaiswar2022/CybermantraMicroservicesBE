@@ -33,10 +33,10 @@ public class SectionServiceImpl implements SectionService {
      */
     @Override
     @Transactional
-    public SectionResponse createSection(UUID courseId, CreateSectionRequest request,String userRole, UUID userId) {
+    public SectionResponse createSection(UUID courseId, CreateSectionRequest request, String userRole, UUID userId) {
         log.info("Creating section for course: {}", courseId);
 
-        Course course = findCourseAndVerifyOwnership(courseId,userId, userRole);
+        Course course = findCourseAndVerifyOwnership(courseId, userId, userRole);
 
         // Get the next order index
         Integer maxOrderIndex = sectionRepository.findMaxOrderIndexByCourseId(courseId);
@@ -89,7 +89,6 @@ public class SectionServiceImpl implements SectionService {
     }
 
 
-
     /**
      * Update section details
      */
@@ -98,7 +97,7 @@ public class SectionServiceImpl implements SectionService {
     public SectionResponse updateSection(UUID courseId, UUID sectionId, UpdateSectionRequest request, String userRole, UUID userId) {
         log.info("Updating section: {} for course: {}", sectionId, courseId);
 
-        findCourseAndVerifyOwnership(courseId,userId,userRole);
+        findCourseAndVerifyOwnership(courseId, userId, userRole);
         CourseSection section = findSectionAndVerifyCourse(sectionId, courseId);
 
         // Update fields
@@ -125,7 +124,7 @@ public class SectionServiceImpl implements SectionService {
     public void deleteSection(UUID courseId, UUID sectionId, String userRole, UUID userId) {
         log.info("Deleting section: {} from course: {}", sectionId, courseId);
 
-        Course course = findCourseAndVerifyOwnership(courseId, userId,userRole);
+        Course course = findCourseAndVerifyOwnership(courseId, userId, userRole);
         CourseSection section = findSectionAndVerifyCourse(sectionId, courseId);
 
         int deletedOrderIndex = section.getOrderIndex();
@@ -176,8 +175,6 @@ public class SectionServiceImpl implements SectionService {
                     "Reorder request must contain all sections of the course"
             );
         }
-
-
 
 
         Map<UUID, Integer> orderMap =
@@ -244,7 +241,7 @@ public class SectionServiceImpl implements SectionService {
 
     // ==================== Private Helper Methods ====================
 
-    private Course findCourseAndVerifyOwnership(UUID courseId, UUID userId,String userRole) {
+    private Course findCourseAndVerifyOwnership(UUID courseId, UUID userId, String userRole) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
 

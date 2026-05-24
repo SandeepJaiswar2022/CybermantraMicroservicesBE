@@ -118,7 +118,8 @@ public class LectureMapper {
         }
 
         try {
-            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {
+            });
         } catch (JsonProcessingException e) {
             log.error("Failed to deserialize resource URLs from JSON: {}", json, e);
             return Collections.emptyList();

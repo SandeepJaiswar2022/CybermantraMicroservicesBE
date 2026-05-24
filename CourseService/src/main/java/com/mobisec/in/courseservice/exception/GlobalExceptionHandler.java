@@ -16,7 +16,6 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -31,17 +30,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleResourceNotFoundException(
-            ResourceNotFoundException ex, WebRequest request) {
+            ResourceNotFoundException ex) {
 
         log.error("Resource not found: {}", ex.getMessage());
-
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .error("RESOURCE_NOT_FOUND")
-                .message(ex.getMessage())
-                .status(HttpStatus.NOT_FOUND.value())
-                .path(request.getDescription(false).replace("uri=", ""))
-                .timestamp(LocalDateTime.now())
-                .build();
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(ex.getMessage()));
@@ -49,17 +40,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleDuplicateResourceException(
-            DuplicateResourceException ex, WebRequest request) {
+            DuplicateResourceException ex) {
 
         log.error("Duplicate resource: {}", ex.getMessage());
-
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .error("DUPLICATE_RESOURCE")
-                .message(ex.getMessage())
-                .status(HttpStatus.CONFLICT.value())
-                .path(request.getDescription(false).replace("uri=", ""))
-                .timestamp(LocalDateTime.now())
-                .build();
 
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiResponse.error(ex.getMessage()));
@@ -67,17 +50,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidOperationException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidOperationException(
-            InvalidOperationException ex, WebRequest request) {
+            InvalidOperationException ex) {
 
         log.error("Invalid operation: {}", ex.getMessage());
-
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .error("INVALID_OPERATION")
-                .message(ex.getMessage())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .path(request.getDescription(false).replace("uri=", ""))
-                .timestamp(LocalDateTime.now())
-                .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage()));
@@ -88,24 +63,15 @@ public class GlobalExceptionHandler {
             InvalidInputException ex) {
 
         log.error("Invalid Input: {}", ex.getMessage());
-
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleUnauthorizedException(
-            UnauthorizedException ex, WebRequest request) {
+            UnauthorizedException ex) {
 
         log.error("Unauthorized access: {}", ex.getMessage());
-
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .error("UNAUTHORIZED")
-                .message(ex.getMessage())
-                .status(HttpStatus.UNAUTHORIZED.value())
-                .path(request.getDescription(false).replace("uri=", ""))
-                .timestamp(LocalDateTime.now())
-                .build();
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error(ex.getMessage()));
     }
@@ -146,11 +112,9 @@ public class GlobalExceptionHandler {
     }
 
 
-
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Object>> handleMethodArgumentTypeMismatch(
-            MethodArgumentTypeMismatchException ex,
-            HttpServletRequest request) {
+            MethodArgumentTypeMismatchException ex) {
 
         String paramName = ex.getName();
         Object rawValue = ex.getValue();
@@ -184,7 +148,7 @@ public class GlobalExceptionHandler {
                     invalidValue, paramName
             );
 
-        } else if (requiredType!=null && (Number.class.isAssignableFrom(requiredType)
+        } else if (requiredType != null && (Number.class.isAssignableFrom(requiredType)
                 || requiredType.isPrimitive())) {
 
             message = String.format(
@@ -206,11 +170,9 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(message, null));
     }
 
-    //HttpMessageNotReadableException
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleHttpMessageNotReadable(
-            HttpMessageNotReadableException ex,
-            HttpServletRequest request) {
+            HttpMessageNotReadableException ex) {
 
         String rootMessage = Optional.of(ex.getMostSpecificCause())
                 .map(Throwable::getMessage)
@@ -218,35 +180,18 @@ public class GlobalExceptionHandler {
 
         log.error("Request body error: {}", rootMessage);
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .error("BAD_REQUEST")
-                .message("Request body is required and must be valid requested JSON")
-                .status(HttpStatus.BAD_REQUEST.value())
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-
         return ResponseEntity.badRequest()
-                .body(ApiResponse.error(errorResponse.getMessage()));
+                .body(ApiResponse.error("Request body is required and must be valid requested JSON"));
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleHttpMediaTypeNotSupported(
-            HttpMediaTypeNotSupportedException ex,
-            HttpServletRequest request) {
+            HttpMediaTypeNotSupportedException ex) {
 
         log.error("Unsupported media type: {}", ex.getContentType());
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .error("UNSUPPORTED_MEDIA_TYPE")
-                .message("Content-Type must be application/json")
-                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value())
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                .body(ApiResponse.error(errorResponse.getMessage()));
+                .body(ApiResponse.error("Content-Type must be application/json"));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
@@ -255,7 +200,6 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         String message = "Invalid API endpoint or malformed URL. Please check the request path and query parameters.";
-
         log.error("No resource found: {}", request.getRequestURI());
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -265,17 +209,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleGlobalException(
-            Exception ex, WebRequest request) {
+            Exception ex) {
 
         log.error("Unexpected error: ", ex);
-
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .error("INTERNAL_SERVER_ERROR")
-                .message("An unexpected error occurred")
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .path(request.getDescription(false).replace("uri=", ""))
-                .timestamp(LocalDateTime.now())
-                .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("An unexpected error occurred"));
@@ -291,40 +227,24 @@ public class GlobalExceptionHandler {
         log.error("JWT Authentication failed: {}", ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.<Void>builder()
-                        .success(false)
-                        .message(ex.getMessage())
-                        .data(null)
-                        .timestamp(LocalDateTime.now())
-                        .build());
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleIllegalArgumentException(
-            IllegalArgumentException ex,
-            HttpServletRequest request) {
+            IllegalArgumentException ex) {
 
         String message = ex.getMessage();
 
         // Handle pagination specific errors
-
         log.error("Illegal argument error: {}", ex.getMessage());
-
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .error("BAD_REQUEST")
-                .message(message)
-                .status(HttpStatus.BAD_REQUEST.value())
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error(message));
     }
+
     @ExceptionHandler(InvalidDataAccessApiUsageException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidDataAccessApiUsage(
-            InvalidDataAccessApiUsageException ex,
-            HttpServletRequest request) {
+            InvalidDataAccessApiUsageException ex) {
 
         String message = ex.getMessage();
 
@@ -335,18 +255,9 @@ public class GlobalExceptionHandler {
 
         log.error("Invalid data access usage: {}", ex.getMessage());
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .error("BAD_REQUEST")
-                .message(message)
-                .status(HttpStatus.BAD_REQUEST.value())
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error(message));
     }
-
 
     /**
      * Handle Spring Security access denied exceptions
@@ -356,19 +267,13 @@ public class GlobalExceptionHandler {
             AccessDeniedException ex) {
 
         log.error("Forbidden: {}", ex.getMessage());
-
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.<Void>builder()
-                        .success(false)
-                        .message("You don't have permission to access this resource")
-                        .timestamp(LocalDateTime.now())
-                        .build());
+                .body(ApiResponse.error("You don't have permission to access this resource"));
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<Object>> handleMethodNotSupported(
-            HttpRequestMethodNotSupportedException ex,
-            HttpServletRequest request) {
+            HttpRequestMethodNotSupportedException ex) {
 
         String supportedMethods = ex.getSupportedHttpMethods() != null
                 ? ex.getSupportedHttpMethods().stream()
@@ -387,7 +292,6 @@ public class GlobalExceptionHandler {
     }
 
 
-
     private String stringifyInvalidValue(Object value) {
         if (value == null) return "null";
 
@@ -398,7 +302,6 @@ public class GlobalExceptionHandler {
                         .collect(Collectors.joining(", "));
             }
         }
-
         return String.valueOf(value);
     }
 }

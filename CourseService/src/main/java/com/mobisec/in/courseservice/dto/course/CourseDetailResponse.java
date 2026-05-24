@@ -1,7 +1,6 @@
 package com.mobisec.in.courseservice.dto.course;
 
 
-
 import com.mobisec.in.courseservice.dto.section.SectionWithLecturesResponse;
 import com.mobisec.in.courseservice.enums.CourseLevel;
 import com.mobisec.in.courseservice.enums.CourseStatus;
