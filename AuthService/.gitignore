@@ -33,12 +33,11 @@ build/
 .vscode/
 
 # Spring Boot config
-application.properties
-application.yml
-src/main/resources/**
 .env
 
 # ignore RSA keys
 # Ignore key files
 src/main/resources/keys/
+
+# Ignore PEM files anywhere
 *.pem
