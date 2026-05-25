@@ -46,7 +46,8 @@ public class UserServiceImpl implements UserService {
         try {
             UserProfile profile = UserProfile.builder()
                     .userId(event.getUserId())
-                    .fullName(event.getFullName())
+                    .firstName(event.getFirstName())
+                    .lastName(event.getLastName())
                     .email(event.getEmail())
                     .role(event.getRole())
                     .isActive(true)
@@ -105,7 +106,8 @@ public class UserServiceImpl implements UserService {
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
 
-        profile.setFullName(request.getFullName());
+        profile.setFirstName(request.getFirstName());
+        profile.setLastName(request.getLastName());
         profile.setUpdatedAt(LocalDateTime.now());
 
         UserProfile updated = userProfileRepository.save(profile);
@@ -140,7 +142,8 @@ public class UserServiceImpl implements UserService {
 
         return InternalUserVerifyResponse.builder()
                 .userId(profile.getUserId())
-                .fullName(profile.getFullName())
+                .firstName(profile.getFirstName())
+                .lastName(profile.getLastName())
                 .email(profile.getEmail())
                 .isValidRole(isValidRole)
                 .isActive(profile.isActive())
@@ -150,7 +153,8 @@ public class UserServiceImpl implements UserService {
     private UserProfileResponse mapToResponse(UserProfile profile) {
         return UserProfileResponse.builder()
                 .userId(profile.getUserId())
-                .fullName(profile.getFullName())
+                .firstName(profile.getFirstName())
+                .lastName(profile.getLastName())
                 .email(profile.getEmail())
                 .role(profile.getRole())
                 .isActive(profile.isActive())

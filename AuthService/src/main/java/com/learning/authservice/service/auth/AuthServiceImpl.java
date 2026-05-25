@@ -53,7 +53,8 @@ public class AuthServiceImpl implements AuthService {
         var role = Role.valueOf("STUDENT");
         User user = User.builder()
                 .email(req.getEmail())
-                .fullName(req.getFullName())
+                .firstName(req.getFirstName())
+                .lastName(req.getLastName())
                 .passwordHash(passwordEncoder.encode(req.getPassword()))
                 .role(role)
                 .isEmailVerified(false)
@@ -67,10 +68,11 @@ public class AuthServiceImpl implements AuthService {
         // Save User to database
         User savedUser = userRepository.save(user);
 
+        String fullName = user.getFirstName() + " " + user.getLastName();
         // Send verification email (async - won't block response)
         emailService.sendVerificationEmail(
                 user.getEmail(),
-                user.getFullName(),
+                fullName,
                 verificationToken);
 
         log.info("User registered successfully: {}", savedUser.getEmail());
@@ -85,10 +87,12 @@ public class AuthServiceImpl implements AuthService {
 
         AuthResponse authResponse = AuthResponse.builder()
                 .accessToken(accessToken)
-                .userId(user.getId())
+                .id(user.getId())
                 .email(user.getEmail())
-                .fullName(user.getFullName())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
                 .role(user.getRole().name())
+                .isEmailVerified(user.isEmailVerified())
                 .build();
         Map<String, Object> result = new HashMap<>();
         result.put("authResponse", authResponse);
@@ -142,7 +146,8 @@ public class AuthServiceImpl implements AuthService {
         // Publish event to RabbitMQ
         UserVerifiedEvent event = new UserVerifiedEvent(
                 user.getId(),
-                user.getFullName(),
+                user.getFirstName(),
+                user.getLastName(),
                 user.getEmail(),
                 user.getRole().name());
         eventPublisher.publishUserVerifiedEvent(event);

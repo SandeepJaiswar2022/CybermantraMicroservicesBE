@@ -9,7 +9,8 @@ import java.util.UUID;
 @Builder
 public class UserProfileResponse {
     private UUID userId;
-    private String fullName;
+    private String firstName;
+    private String lastName;
     private String email;
     private String role;
     private boolean isActive;

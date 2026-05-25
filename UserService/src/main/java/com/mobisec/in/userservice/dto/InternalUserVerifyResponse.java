@@ -8,7 +8,8 @@ import java.util.UUID;
 @Builder
 public class InternalUserVerifyResponse {
     private UUID userId;
-    private String fullName;
+    private String firstName;
+    private String lastName;
     private String email;
     private boolean isValidRole; // server-side role assertion — not raw role string
     private boolean isActive;

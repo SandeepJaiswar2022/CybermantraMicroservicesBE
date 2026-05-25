@@ -9,8 +9,10 @@ import java.util.UUID;
 @Builder
 public class AuthResponse {
     private String accessToken;
-    private UUID userId;
+    private UUID id;
     private String email;
-    private String fullName;
+    private String firstName;
+    private String lastName;
     private String role;
+    private Boolean isEmailVerified;
 }

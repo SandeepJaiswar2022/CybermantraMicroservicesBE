@@ -15,7 +15,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class UserVerifiedEvent implements Serializable {
     private UUID userId;
-    private String fullName;
+    private String firstName;
+    private String lastName;
     private String email;
     private String role;
 }
