@@ -1,173 +1,116 @@
 package com.learning.authservice.controller;
 
 import com.learning.authservice.dto.ApiResponse;
+import com.learning.authservice.dto.AuthResponse;
 import com.learning.authservice.dto.LoginRequest;
 import com.learning.authservice.dto.RegisterRequest;
 import com.learning.authservice.dto.RegisterResponse;
 import com.learning.authservice.exception.ResourceNotFoundException;
-import com.learning.authservice.repository.UserRepository;
 import com.learning.authservice.service.auth.AuthService;
-import com.learning.authservice.service.jwt.JwtService;
-import com.learning.authservice.service.refreshToken.RefreshTokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.UUID;
-
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("${api.base-url}/auth")
 public class AuthController {
+
     private final AuthService authService;
-    private final RefreshTokenService refreshTokenService;
-    private final JwtService jwtService;
-    private final UserRepository userRepository;
 
     @Value("${jwt.refresh-max-expiry-seconds}")
-    private long refreshTokenExpirySeconds;
+    private long refreshTokenMaxAgeSeconds;
 
-//    @PostMapping(value = "/register", produces = MediaType.APPLICATION_JSON_VALUE)
-@PostMapping(value = "/register")
-public ResponseEntity<ApiResponse<Object>> register(
-            @RequestBody RegisterRequest req) {
-
-        // 1️⃣ Register user and generate tokens
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<RegisterResponse>> register(@RequestBody RegisterRequest req) {
         RegisterResponse response = authService.register(req);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Registered Successfully.", response));
+                .body(ApiResponse.success("Registered successfully.", response));
     }
 
-    @PostMapping(value="/login")
-    public ResponseEntity<ApiResponse<Object>> login(@RequestBody LoginRequest req, HttpServletResponse response) {
-        Map<String, Object> loginResponse = authService.login(req);
-        // Send refresh token as HttpOnly cookie
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", loginResponse.get("refreshToken").toString())
-                .httpOnly(true)
-                .secure(false) // set true in prod with HTTPS
-                .path("/")
-                .maxAge(refreshTokenExpirySeconds) // 30 days
-                .sameSite("None")
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AuthResponse>> login(
+            @RequestBody LoginRequest req,
+            HttpServletResponse response) {
 
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponse.success("Logged In Successfully.",loginResponse.getOrDefault("authResponse",null)));
+        AuthService.LoginResult result = authService.login(req); // ← AuthService not AuthServiceImpl
+
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                buildRefreshCookie(result.rawRefreshToken()).toString());
+
+        return ResponseEntity.ok(ApiResponse.success("Logged in successfully.", result.authResponse()));
     }
-
-//    @PostMapping("/refresh")
-//    public ResponseEntity<ApiResponse<Object>> refresh(HttpServletRequest request, HttpServletResponse response) {
-//        String refreshToken = null;
-//
-//        // Extract refresh token from cookies
-//        if (request.getCookies() != null) {
-//            for (Cookie cookie : request.getCookies()) {
-//                if ("refreshToken".equals(cookie.getName())) {
-//                    refreshToken = cookie.getValue();
-//                    break;
-//                }
-//            }
-//        }
-//
-//        if (refreshToken == null) {
-//            throw new ResourceNotFoundException("Refresh Token not Found!");
-//        }
-//
-//        // rotate in Redis via Lua CAS
-////        var res = refreshTokenService.rotateIfValid(refreshToken);
-//
-//        // rotate successful: new refresh token returned, but we need userId to generate access token
-//        // We must obtain userId by reading Redis family key. To simplify, parse familyId and get user_id
-//        // 1️⃣ Delegate to service layer (which handles Redis + Lua CAS)
-//        var result = refreshTokenService.rotateIfValid(refreshToken);
-//
-//        // 2️⃣ Extract user snapshot from Redis (no SQL)
-//        Map<Object, Object> userData = result.userData();
-//        UUID userId = UUID.fromString((String) userData.get("user_id"));
-//
-//        // 3️⃣ Generate new access token (from cached info)
-//        String accessToken = jwtService.generateAccessToken(userId);
-//
-//        // set new cookie
-//        ResponseCookie cookie = ResponseCookie.from("refreshToken", result.newRefreshToken())
-//                .httpOnly(true)
-//                .secure(false)
-//                .path("/")
-//                .maxAge(refreshTokenExpirySeconds) // 30 days
-//                .sameSite("None")
-//                .build();
-//        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-//
-//
-//        Map<String, String> bodyResponse = new HashMap<>();
-//        bodyResponse.put("accessToken", accessToken);
-//
-//        return ResponseEntity.status(HttpStatus.OK)
-//                .body(ApiResponse.success("Token Refreshed Successfully.",bodyResponse));
-//    }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<Object>> refresh(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = null;
+    public ResponseEntity<ApiResponse<AuthResponse>> refresh(
+            HttpServletRequest request,
+            HttpServletResponse response) {
 
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("refreshToken".equals(cookie.getName())) {
-                    refreshToken = cookie.getValue();
-                    break;
-                }
-            }
-        }
+        String refreshToken = extractRefreshTokenCookie(request);
+        AuthService.RefreshResult result = authService.refresh(refreshToken); // ← same
 
-        if (refreshToken == null) {
-            throw new ResourceNotFoundException("Refresh Token not Found!");
-        }
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                buildRefreshCookie(result.newRefreshToken()).toString());
 
-        // Call the rotate function
-        var result = refreshTokenService.rotateIfValid(refreshToken);
+        return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully.", result.authResponse()));
+    }
 
-        // Extract user info from Redis
-        Map<Object, Object> userData = result.userData();
-        UUID userId = UUID.fromString((String) userData.get("user_id"));
-        String role = (String) userData.get("role");
-//        String email = (String) userData.get("email");
+    // Add logout endpoint to AuthController
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            HttpServletRequest request,
+            HttpServletResponse response) {
 
-        // Generate new access token
-        String accessToken = jwtService.generateAccessToken(userId,role);
+        // Revoke the token family in Redis
+        String refreshToken = extractRefreshTokenCookie(request);
+        authService.logout(refreshToken);
 
-        // Set new refresh cookie
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", result.newRefreshToken())
+        // Clear the cookie
+        ResponseCookie expiredCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
                 .secure(false)
                 .path("/")
-                .maxAge(refreshTokenExpirySeconds)
-                .sameSite("None")
+                .maxAge(0) // ← immediately expires the cookie
+                .sameSite("Lax")
                 .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie.toString());
 
-        // Build response for debugging
-        Map<String, Object> debugResponse = new LinkedHashMap<>();
-        debugResponse.put("accessToken", accessToken);
-        debugResponse.put("newRefreshToken", result.newRefreshToken());
-        debugResponse.put("tokenFamilyData", userData); // this includes user_id, hashes, timestamps, etc.
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponse.success("Token rotated successfully (debug mode).", debugResponse));
+        return ResponseEntity.ok(ApiResponse.success("Logged out successfully.", null));
     }
 
     @GetMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail(@RequestParam String token) {
-        try {
-            String message = authService.verifyEmail(token);
-            return ResponseEntity.ok(message);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+    public ResponseEntity<ApiResponse<String>> verifyEmail(@RequestParam String token) {
+        String message = authService.verifyEmail(token);
+        return ResponseEntity.ok(ApiResponse.success(message, null));
+    }
+
+    // ── private helpers ───────────────────────────────────────────────────────
+
+    private String extractRefreshTokenCookie(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
         }
+        throw new ResourceNotFoundException("Refresh token cookie not found.");
+    }
+
+    private ResponseCookie buildRefreshCookie(String token) {
+        return ResponseCookie.from("refreshToken", token)
+                .httpOnly(true)
+                .secure(false) // → true in production (HTTPS)
+                .path("/")
+                .maxAge(refreshTokenMaxAgeSeconds)
+                .sameSite("Lax") // consistent across login + refresh
+                .build();
     }
 }

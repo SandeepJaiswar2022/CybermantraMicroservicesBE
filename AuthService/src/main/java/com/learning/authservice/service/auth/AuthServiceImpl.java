@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -43,118 +44,133 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final EventPublisher eventPublisher;
 
+    @Value("${jwt.access-token-expiry-seconds}")
+    private long accessTokenExpirySeconds;
+
     @Override
     public RegisterResponse register(RegisterRequest req) {
-        // Check if user already exists
         if (userRepository.existsByEmail(req.getEmail())) {
-            throw new AlreadyExistException("Email already exist!");
+            throw new AlreadyExistException("Email already exists!");
         }
-        // Create new user
-        var role = Role.valueOf("STUDENT");
+
+        String verificationToken = CryptoUtils.generateRandomToken(32);
+
         User user = User.builder()
                 .email(req.getEmail())
                 .firstName(req.getFirstName())
                 .lastName(req.getLastName())
                 .passwordHash(passwordEncoder.encode(req.getPassword()))
-                .role(role)
+                .role(Role.STUDENT)
                 .isEmailVerified(false)
+                .emailVerificationToken(verificationToken)
+                .emailVerificationTokenExpiry(Instant.now().plus(24, ChronoUnit.HOURS))
                 .build();
 
-        // Generate verification token
-        String verificationToken = CryptoUtils.generateRandomToken(32);
-        user.setEmailVerificationToken(verificationToken);
-        user.setEmailVerificationTokenExpiry(Instant.now().plus(24, ChronoUnit.HOURS));
+        userRepository.save(user);
+        emailService.sendVerificationEmail(user.getEmail(),
+                user.getFirstName() + " " + user.getLastName(), verificationToken);
 
-        // Save User to database
-        User savedUser = userRepository.save(user);
-
-        String fullName = user.getFirstName() + " " + user.getLastName();
-        // Send verification email (async - won't block response)
-        emailService.sendVerificationEmail(
-                user.getEmail(),
-                fullName,
-                verificationToken);
-
-        log.info("User registered successfully: {}", savedUser.getEmail());
-
-        return RegisterResponse.builder()
-                .email(user.getEmail())
-                .build();
+        log.info("User registered: {}", user.getEmail());
+        return RegisterResponse.builder().email(user.getEmail()).build();
     }
 
-    private Map<String, Object> getAuthResponseAndRefreshToken(User user, String refreshToken) {
-        String accessToken = jwtService.generateAccessToken(user.getId(), user.getRole().name());
-
-        AuthResponse authResponse = AuthResponse.builder()
-                .accessToken(accessToken)
-                .id(user.getId())
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .role(user.getRole().name())
-                .isEmailVerified(user.isEmailVerified())
-                .build();
-        Map<String, Object> result = new HashMap<>();
-        result.put("authResponse", authResponse);
-        result.put("refreshToken", refreshToken);
-
-        return result;
-    }
-
-    public Map<String, Object> login(LoginRequest req) {
+    /**
+     * Authenticates user, creates token family in Redis, returns consistent
+     * AuthResponse.
+     * The raw refreshToken is returned separately for the controller to set as
+     * HttpOnly cookie.
+     */
+    @Override
+    public LoginResult login(LoginRequest req) {
         try {
             Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
             User user = (User) auth.getPrincipal();
 
             if (!user.isEmailVerified()) {
-                throw new AuthException("Please verify email before login!");
+                throw new AuthException("Please verify your email before logging in.");
             }
 
-            String refreshToken = refreshTokenService.createTokenFamily(
-                    user.getId(), user.getRole().name());
-            return getAuthResponseAndRefreshToken(user, refreshToken);
+            // Store full user snapshot in Redis so refresh never hits the DB
+            String rawRefreshToken = refreshTokenService.createTokenFamily(
+                    user.getId(), user.getRole().name(),
+                    user.getEmail(), user.getFirstName(), user.getLastName(),
+                    user.isEmailVerified());
+
+            String accessToken = jwtService.generateAccessToken(user.getId(), user.getRole().name());
+
+            AuthResponse authResponse = AuthResponse.builder()
+                    .accessToken(accessToken)
+                    .expiresIn(accessTokenExpirySeconds)
+                    .user(UserDto.builder()
+                            .id(user.getId())
+                            .email(user.getEmail())
+                            .firstName(user.getFirstName())
+                            .lastName(user.getLastName())
+                            .role(user.getRole().name())
+                            .isEmailVerified(user.isEmailVerified())
+                            .build())
+                    .build();
+
+            return new LoginResult(authResponse, rawRefreshToken);
 
         } catch (BadCredentialsException | UsernameNotFoundException e) {
-            // Generic message - don't reveal if email exists or password is wrong
-            throw new AuthException("Invalid email or password!");
+            throw new AuthException("Invalid email or password.");
         }
     }
 
+    @Override
+    public void logout(String refreshToken) {
+        if (refreshToken != null) {
+            String familyId = refreshToken.split(":", 2)[0];
+            refreshTokenService.revokeFamily(familyId);
+        }
+    }
+
+    /**
+     * Validates and rotates refresh token via Redis Lua CAS.
+     * Generates new access token from Redis user snapshot — zero DB call.
+     * Returns new raw refreshToken for the controller to rotate the cookie.
+     */
+    @Override
+    public RefreshResult refresh(String incomingRefreshToken) {
+        var rotated = refreshTokenService.rotateIfValid(incomingRefreshToken);
+
+        String accessToken = jwtService.generateAccessToken(
+                rotated.user().getId(), rotated.user().getRole());
+
+        AuthResponse authResponse = AuthResponse.builder()
+                .accessToken(accessToken)
+                .expiresIn(accessTokenExpirySeconds)
+                .user(rotated.user())
+                .build();
+
+        return new RefreshResult(authResponse, rotated.newRefreshToken());
+    }
+
+    @Override
     @Transactional
     public String verifyEmail(String token) {
-        // Find user by token
         User user = userRepository.findByEmailVerificationToken(token)
-                .orElseThrow(() -> new AuthException("Invalid verification token"));
+                .orElseThrow(() -> new AuthException("Invalid verification token."));
 
-        // Check if token is expired
         if (user.getEmailVerificationTokenExpiry().isBefore(Instant.now())) {
-            throw new AuthException("Verification token has expired");
+            throw new AuthException("Verification token has expired.");
         }
-
-        // Check if already verified
         if (user.isEmailVerified()) {
-            return "Email already verified";
+            return "Email already verified.";
         }
 
-        // Mark as verified
         user.setEmailVerified(true);
         user.setEmailVerificationToken(null);
         user.setEmailVerificationTokenExpiry(null);
         userRepository.save(user);
 
-        // Publish event to RabbitMQ
-        UserVerifiedEvent event = new UserVerifiedEvent(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getRole().name());
-        eventPublisher.publishUserVerifiedEvent(event);
+        eventPublisher.publishUserVerifiedEvent(new UserVerifiedEvent(
+                user.getId(), user.getFirstName(), user.getLastName(),
+                user.getEmail(), user.getRole().name()));
 
-        log.info("Email verified successfully for user: {}", user.getEmail());
-
-        return "Email verified successfully";
+        log.info("Email verified for: {}", user.getEmail());
+        return "Email verified successfully.";
     }
-
 }
